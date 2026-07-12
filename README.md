@@ -4,11 +4,17 @@ Dosyalar:
 - index.html
 - style.css
 - app.js
+- server.js
+- package.json
 
-Kullanım:
-1. index.html dosyasını tarayıcıda açarak yerelde görüntüleyin.
-2. Deploy için projeyi GitHub, Netlify veya Vercel gibi bir platforma yükleyin.
+Yerel geliştirme ve gerçek demo çalıştırma:
+1. Bu klasörde terminal açın.
+2. `npm install` komutunu çalıştırın.
+3. `npm start` ile sunucuyu başlatın.
+4. Tarayıcıda `http://localhost:3000` adresine gidin.
 
 Not:
-- index.html, style.css ve app.js aynı klasörde olmalıdır.
-- "Giriş Yap" ve "Üretici Paketleri" formları demo amaçlıdır.
+- Bu proje artık Node.js tabanlı bir backend ile çalışır.
+- `package-form` ve içerik üretici başvuruları backend'e gönderilir.
+- `index.html`, `style.css`, `app.js` ve `server.js` aynı klasörde olmalıdır.
+- `Giriş Yap` düğmesi simülasyon amaçlıdır; gerçek kimlik doğrulama eklenmelidir.

@@ -5,6 +5,24 @@ const heroSecondary = document.querySelector('.secondary-button');
 const searchButton = document.querySelector('.icon-button');
 const heroHeading = document.querySelector('.hero-panel h1');
 
+const API_BASE = '';
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(`${API_BASE}${url}`, options);
+  if (!response.ok) {
+    throw new Error(`API hatası: ${response.status}`);
+  }
+  return response.json();
+}
+
+function trackEvent(action, payload = {}) {
+  fetchJson('/api/track', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...payload }),
+  }).catch(() => {});
+}
+
 const reels = [
   {
     user: 'reeloram',
@@ -244,14 +262,17 @@ function buildReel(reel) {
     if (video.paused) {
       video.play();
       showTip('Oynatılıyor');
+      trackEvent('reel.play', { reelId: reel.id });
     } else {
       video.pause();
       showTip('Duraklatıldı');
+      trackEvent('reel.pause', { reelId: reel.id });
     }
   });
 
   video.addEventListener('dblclick', () => {
     toggleLike();
+    trackEvent('reel.like', { reelId: reel.id });
   });
 
   muteButton.addEventListener('click', () => {
@@ -271,14 +292,36 @@ function buildReel(reel) {
   return reelElement;
 }
 
-function renderFeed() {
+async function renderFeed() {
   heroHeading.textContent = 'İçerik üreticilerini büyüt, reklam gelirlerini artır.';
-  mountFeed(reels);
+  let items = reels;
+
+  try {
+    const data = await fetchJson('/api/reels');
+    if (Array.isArray(data.reels) && data.reels.length) {
+      items = data.reels;
+    }
+  } catch (error) {
+    console.warn('Reels yüklenemedi, varsayılan veri kullanılıyor.', error);
+  }
+
+  mountFeed(items);
 }
 
-function renderTrend() {
+async function renderTrend() {
   heroHeading.textContent = 'Trend içerikler, sponsor fırsatları ve keşif akışı.';
-  mountFeed(trendReels);
+  let items = trendReels;
+
+  try {
+    const data = await fetchJson('/api/reels');
+    if (Array.isArray(data.reels) && data.reels.length) {
+      items = data.reels.slice(0, 3);
+    }
+  } catch (error) {
+    console.warn('Trend reel yüklenemedi, varsayılan veri kullanılıyor.', error);
+  }
+
+  mountFeed(items);
 }
 
 function renderCreatorPage() {
@@ -309,10 +352,29 @@ function renderCreatorPage() {
   `;
 
   const form = document.getElementById('creator-form');
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    alert('Başvurunuz alındı! Size en kısa sürede dönüş yapılacaktır.');
-    form.reset();
+
+    const payload = {
+      name: form.name.value,
+      email: form.email.value,
+      channel: form.channel.value,
+      message: form.message.value,
+    };
+
+    try {
+      await fetchJson('/api/creator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      alert('Başvurunuz alındı! Size en kısa sürede dönüş yapılacaktır.');
+      form.reset();
+      trackEvent('creator.application', { channel: payload.channel });
+    } catch (error) {
+      console.error(error);
+      alert('Başvuru gönderilemedi. Lütfen tekrar deneyin.');
+    }
   });
 }
 
@@ -413,9 +475,29 @@ window.addEventListener('load', () => {
 
   const packageForm = document.getElementById('package-form');
   if (packageForm) {
-    // Allow native submission (Netlify forms) but close modal shortly after submit
-    packageForm.addEventListener('submit', () => {
-      setTimeout(() => closeModal('package-modal'), 300);
+    packageForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = {
+        company: packageForm.company.value,
+        budget: packageForm.budget.value,
+        campaignType: packageForm.campaignType.value,
+        campaignGoal: packageForm.campaignGoal.value,
+      };
+
+      try {
+        await fetchJson('/api/package-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        alert('Paket talebiniz alındı! En kısa sürede size döneceğiz.');
+        packageForm.reset();
+        closeModal('package-modal');
+        trackEvent('package.request', { campaignType: payload.campaignType });
+      } catch (error) {
+        console.error(error);
+        alert('Talep gönderilemedi. Lütfen tekrar deneyin.');
+      }
     });
   }
 

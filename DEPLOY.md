@@ -10,7 +10,17 @@ python -m http.server 8000
 # ardından http://localhost:8000 açın
 ```
 
-3) GitHub üzerine yüklemek (önerilen):
+3) Yerel Node.js backend ile test etmek:
+- Node.js yüklü değilse: https://nodejs.org/ adresinden LTS sürümünü yükleyin.
+- Bu klasörde terminal açın ve aşağıdaki komutları çalıştırın:
+```powershell
+cd "C:\Users\Tunca\ZİVR0"
+npm install
+npm start
+```
+- Ardından tarayıcıda `http://localhost:3000` adresini açın.
+
+4) GitHub üzerine yüklemek (önerilen):
 - Git yüklü değilse: https://git-scm.com/downloads
 - GitHub üzerinde yeni bir repository oluşturun (ör: `reeloram-site`)
 - Aşağıdaki PowerShell scriptini çalıştırın (repo URL'nizi verin):
@@ -20,12 +30,19 @@ cd "C:\Users\Tunca\ZİVR0"
 ```
 - Sonra GitHub tarafında `Settings → Pages` bölümünden `Branch: main / root` seçip etkinleştirin.
 
-4) Netlify (alternatif hızlı deploy):
+5) Netlify (alternatif hızlı deploy):
 - https://app.netlify.com/ adresinden yeni site oluşturun ve repo'yu bağlayın veya `Drag & Drop` ile proje klasörünü yükleyin.
-- Not: `reeloram-deploy.zip` arşivini doğrudan Netlify'a sürükleyip bırakabilirsiniz. Netlify, `data-netlify="true"` ile işaretlenmiş formları otomatik olarak yakalar; `package-form` bu şekilde ayarlandı.
+- Not: `reeloram-deploy.zip` arşivini doğrudan Netlify'a sürükleyip bırakabilirsiniz.
 
-5) Vercel (alternatif):
+6) Vercel (alternatif):
 - https://vercel.com/ ile GitHub hesabınızı bağlayın ve repo'yu deploy edin.
+
+API uç noktaları:
+- `GET /api/reels` — akış verisini getirir.
+- `POST /api/track` — etkinlikleri izleme verisi olarak kaydeder.
+- `POST /api/creator` — üretici başvurularını kaydeder.
+- `POST /api/package-request` — reklam paket talebini kaydeder.
+- `GET /api/status` — backend durumunu gösterir.
 
 Notlar:
 - `scripts/init-and-push.ps1` scripti Git yüklü olmasını gerektirir.
