@@ -1,0 +1,11 @@
+node_modules
+.npm
+npm-debug.log
+.git
+.vscode
+.env
+.DS_Store
+reeloram.out.log
+reeloram.err.log
+pm2*log*
+tunnel.url
