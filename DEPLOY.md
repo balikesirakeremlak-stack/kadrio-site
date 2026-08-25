@@ -1,4 +1,4 @@
-Reeloram - Deploy Talimatları
+Kadrio - Deploy Talimatları
 
 1) Yerel test (basit):
 - Tarayıcıda `index.html` dosyasını açın.

@@ -1,169 +1,67 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Reeloram - İçerik Akış Platformu</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kadrio - İçerik Akış Platformu</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Google AdSense: replace the placeholder after account approval -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" data-ad-client="ca-pub-REPLACE_WITH_REAL_ID"></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="top-bar">
       <div class="brand-group">
-        <div class="brand">Reeloram</div>
+        <div class="brand">Kadrio</div>
         <div class="brand-tag">Video Akış & Monetizasyon</div>
       </div>
       <div class="top-actions">
         <button class="icon-button" aria-label="Arama">🔎</button>
+        <button id="notifications-button" class="icon-button" aria-label="Bildirimler">🔔</button>
         <button class="text-button">Giriş Yap</button>
       </div>
     </header>
 
     <main class="content">
-      <section class="hero-panel">
+      <section class="hero-panel" id="hero-section">
         <div class="hero-copy">
-          <p class="eyebrow">Profesyonel Platform</p>
           <h1>İçerik üreticilerini büyüt, reklam gelirlerini artır.</h1>
-          <p>Reeloram, yaratıcı toplulukları bir araya getiren, sponsorlu içerik, reklam alanları ve performans ölçümü ile gelir odaklı bir akış deneyimi sunar.</p>
+          <p>Kadrio, yaratıcı toplulukları bir araya getiren, sponsorlu içerik ve reklam alanları ile gelir odaklı bir platform sunar.</p>
           <div class="hero-actions">
             <button class="primary-button">Hemen Başla</button>
             <button class="secondary-button">Üretici Paketleri</button>
           </div>
         </div>
-        <div class="hero-sponsor-card">
-          <div class="sponsor-label">Sponsorlu Paket</div>
-          <div class="sponsor-copy">
-            <p>Reklam kampanyaları için önerilen paketler, markalar ve içerik üreticileri bir arada.</p>
-            <p class="sponsor-price">Tavsiye Edilen Paket: 2.850₺ / ay</p>
-          </div>
-        </div>
-        </div>
-
-        <!-- Reklam yerleşimi (AdSense) - replace ca-pub-XXXXXXXXXXXX with your publisher ID -->
-        <div class="hero-ad-slot" style="margin-top:12px; text-align:center;">
-          <ins class="adsbygoogle"
-               style="display:inline-block;width:320px;height:100px"
-               data-ad-client="ca-pub-REPLACE_WITH_REAL_ID"
-               data-ad-slot="REPLACE_WITH_AD_SLOT"></ins>
-          <script>
-            (adsbygoogle = window.adsbygoogle || []).push({});
-          </script>
-        </div>
-
-        <!-- Affiliate CTA örneği -->
-        <div style="margin-top:12px; text-align:center;">
-          <a href="/affiliate/redirect?aid=sample-aff-1" class="primary-button">Öne Çıkan Ürüne Göz At</a>
-        </div>
       </section>
 
-      <section class="growth-panel">
-        <article class="growth-card">
-          <h2>Reklam Alanı</h2>
-          <p>Markalar için görünür banner alanları ve sponsorlu içerik yerleşimleri.</p>
-        </article>
-        <article class="growth-card">
-          <h2>Yaratıcı Ağ</h2>
-          <p>Üreticiler videolarını paylaşır, izleyiciler etkileşime geçer, gelir akışı başlar.</p>
-        </article>
-        <article class="growth-card">
-          <h2>Trend Keşif</h2>
-          <p>Trend içerikler, popüler etiketler ve sponsorlu gösterimler tek platformda.</p>
-        </article>
-      </section>
-
-      <section class="ad-banner">
-        <div class="ad-copy">
-          <span>Reklam Alanı</span>
-          <p>Sayfanızda görünen premium reklam bölümü burada yer alacak. Trafik arttıkça gelir de artar.</p>
-        </div>
-      </section>
-
-      <section class="monetization-panel">
-        <article class="monetization-card">
-          <h2>Gelir Yarat</h2>
-          <p>Marka sponsorlukları ve öncelikli gösterimler ile içerik başına kazancı artırın.</p>
-        </article>
-        <article class="monetization-card">
-          <h2>Reklam Paketi</h2>
-          <p>Premium reklam alanlarıyla hedefleme sağlanır, her gösterim daha değerli hale gelir.</p>
-        </article>
-        <article class="monetization-card">
-          <h2>Analiz Raporu</h2>
-          <p>Performans verileriyle hangi içeriklerin gelir getirdiğini anında takip edin.</p>
-        </article>
-      </section>
-
-      <section class="package-panel">
-        <div class="panel-header">
-          <h2>Öne Çıkan Reklam Paketleri</h2>
-          <p>Reeloram üzerinden markalara, kreatörlere ve reklamverenlere özel paketlerle hızlıca erişin.</p>
-        </div>
-        <div class="package-grid">
-          <article class="package-card">
-            <h3>Starter</h3>
-            <p>Yeni içerik üreticileri için reklam kampanyası yönetimi.</p>
-            <ul>
-              <li>Öne çıkan paylaşım alanı</li>
-              <li>Aylık temel raporlama</li>
-              <li>Reklam alanı yerleşimi</li>
-            </ul>
-            <button class="secondary-button package-action">Paketleri Gör</button>
-          </article>
-          <article class="package-card featured">
-            <h3>Growth</h3>
-            <p>Büyümeyi hedefleyen markalar ve kreatörler için tam destek.</p>
-            <ul>
-              <li>Sponsorlu içerik entegrasyonu</li>
-              <li>Öncelikli marka uyumu</li>
-              <li>Aylık performans analizi</li>
-            </ul>
-            <button class="secondary-button package-action">Paketleri Gör</button>
-          </article>
-          <article class="package-card">
-            <h3>Premium</h3>
-            <p>Reklam ve sponsorluk stratejisini profesyonel bir seviyeye taşıyın.</p>
-            <ul>
-              <li>Özel kampanya danışmanlığı</li>
-              <li>GTI raporları ve dönüşüm ölçümü</li>
-              <li>Marka iş birliği garantisi</li>
-            </ul>
-            <button class="secondary-button package-action">Paketleri Gör</button>
-          </article>
-        </div>
-      </section>
-
-      <section class="page-body" id="page-body">
-        <div class="feed no-scrollbar" id="feed"></div>
+      <section id="page-body" class="page-content">
+        <!-- Dynamic content loads here -->
       </section>
     </main>
 
-    <nav class="bottom-nav" aria-label="Alt menü">
+    <nav class="bottom-nav">
       <button class="nav-item active" data-page="akis">
-        <span class="nav-icon">🏠</span>
+        <span class="nav-icon">🎬</span>
         <span class="nav-label">Akış</span>
       </button>
       <button class="nav-item" data-page="trend">
-        <span class="nav-icon">📈</span>
+        <span class="nav-icon">🔥</span>
         <span class="nav-label">Trend</span>
       </button>
-      <button class="nav-item create-button" data-page="uret">
-        <span class="nav-icon">＋</span>
+      <button class="nav-item" data-page="uret">
+        <span class="nav-icon">➕</span>
         <span class="nav-label">Üret</span>
-      </button>
-      <button class="nav-item" data-page="mesaj">
-        <span class="nav-icon">💬</span>
-        <span class="nav-label">Mesaj</span>
       </button>
       <button class="nav-item" data-page="profil">
         <span class="nav-icon">👤</span>
         <span class="nav-label">Profil</span>
       </button>
+      <button class="nav-item" data-page="admin">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Admin</span>
+      </button>
     </nav>
   </div>
 
-  <!-- Modallar -->
+  <!-- MODALS -->
   <div id="login-modal" class="modal hidden" aria-hidden="true">
     <div class="modal-dialog">
       <button class="close-modal" aria-label="Kapat">✕</button>
@@ -171,13 +69,11 @@
       <form id="login-form" class="form-grid">
         <div class="input-group">
           <label for="login-email">E-posta</label>
-          <input id="login-email" name="email" type="email" placeholder="mail@ornek.com" required />
+          <input id="login-email" type="email" placeholder="mail@ornek.com" required />
+          <label for="login-password">Şifre</label>
+          <input id="login-password" type="password" minlength="6" placeholder="En az 6 karakter" required />
         </div>
-        <div class="input-group">
-          <label for="login-pass">Şifre</label>
-          <input id="login-pass" name="password" type="password" placeholder="Şifreniz" required />
-        </div>
-        <button type="submit" class="submit-button">Giriş</button>
+        <button type="submit" class="submit-button">Giriş / Kaydol</button>
       </form>
     </div>
   </div>
@@ -185,41 +81,61 @@
   <div id="package-modal" class="modal hidden" aria-hidden="true">
     <div class="modal-dialog">
       <button class="close-modal" aria-label="Kapat">✕</button>
-      <h3>Üretici Paketleri</h3>
-      <p>Marka iş birlikleri, sponsorlu kampanyalar ve reklam alanları için öncelikli teklif alın.</p>
+      <h3>Sponsor Paketi</h3>
       <form id="package-form" class="form-grid">
         <div class="input-group">
-          <label for="company">Firma / Kanal</label>
-          <input id="company" name="company" type="text" placeholder="Firma veya kanal adı" required />
+          <label for="company">Firma Adı</label>
+          <input id="company" name="company" type="text" placeholder="Firma adı" required />
         </div>
         <div class="input-group">
-          <label for="budget">Tahmini Bütçe (TL)</label>
-          <input id="budget" name="budget" type="text" placeholder="Örn: 2850" required />
+          <label for="budget">Bütçe (TL)</label>
+          <input id="budget" name="budget" type="text" placeholder="5000" required />
         </div>
         <div class="input-group">
           <label for="campaign-type">Kampanya Türü</label>
           <select id="campaign-type" name="campaignType" required>
-            <option value="" disabled selected>Seçiniz</option>
-            <option value="Sponsorlu İçerik">Sponsorlu İçerik</option>
-            <option value="Reklam Alanı">Reklam Alanı</option>
-            <option value="Marka Ortaklığı">Marka Ortaklığı</option>
+            <option value="">Seçiniz</option>
+            <option value="sponsorlu-icerik">Sponsorlu İçerik</option>
+            <option value="reklam-alani">Reklam Alanı</option>
+            <option value="marka-ortakligi">Marka Ortaklığı</option>
           </select>
         </div>
         <div class="input-group">
           <label for="campaign-goal">Hedef</label>
-          <textarea id="campaign-goal" name="campaignGoal" placeholder="Kampanya hedefinizi kısa yazın..." required></textarea>
+          <textarea id="campaign-goal" name="campaignGoal" placeholder="Kampanya hedefi..." required></textarea>
         </div>
-        <button type="submit" class="submit-button">Teklif Gönder</button>
-        <p class="note">Reeloram ekibi talebinize 24 saat içinde geri dönecektir.</p>
+        <button type="submit" class="submit-button">Gönder</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="reel-upload-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-dialog">
+      <button class="close-modal" aria-label="Kapat">✕</button>
+      <h3>Yeni Reel Yükle</h3>
+      <p class="upload-safety-note">Silah, cinsel içerik ve şiddet içeren videolar yayınlanamaz.</p>
+      <form id="reel-upload-form" class="form-grid">
+        <div class="input-group">
+          <label for="reel-title">Başlık *</label>
+          <input id="reel-title" name="title" type="text" placeholder="Reel başlığı" required />
+        </div>
+        <div class="input-group">
+          <label for="reel-desc">Açıklama</label>
+          <textarea id="reel-desc" name="description" placeholder="Açıkla..." rows="3"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="reel-tags">Etiketler (virgülle ayırın)</label>
+          <input id="reel-tags" name="tags" type="text" placeholder="#trend #viral #komedi" />
+        </div>
+        <div class="input-group">
+          <label for="reel-video">Video dosyası</label>
+          <input id="reel-video" name="video" type="file" accept="video/*" />
+        </div>
+        <button type="submit" class="submit-button">Yayınla</button>
       </form>
     </div>
   </div>
 
   <script src="app.js"></script>
-  <footer class="site-footer" style="padding:18px;text-align:center;color:#666;font-size:14px;">
-    <div>Site sahibi: <strong>TUNCAY ERGÜN</strong></div>
-    <div>İletişim: <a href="mailto:erguntuncay64@gmail.com">erguntuncay64@gmail.com</a></div>
-    <div>Domain: <strong>localhost</strong></div>
-  </footer>
 </body>
 </html>

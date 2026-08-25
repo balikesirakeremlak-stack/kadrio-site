@@ -1,0 +1,22 @@
+  <!-- Reel Upload Modal -->
+  <div id="reel-upload-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-dialog">
+      <button class="close-modal" aria-label="Kapat">✕</button>
+      <h3>Yeni Reel Yükle</h3>
+      <form id="reel-upload-form" class="form-grid">
+        <div class="input-group">
+          <label for="reel-title">Başlık</label>
+          <input id="reel-title" name="title" type="text" placeholder="Reel başlığı" required />
+        </div>
+        <div class="input-group">
+          <label for="reel-desc">Açıklama</label>
+          <textarea id="reel-desc" name="description" placeholder="Reel açıklaması yazın..." rows="3"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="reel-tags">Etiketler (virgülle ayırın)</label>
+          <input id="reel-tags" name="tags" type="text" placeholder="#trend #viral #komedi" />
+        </div>
+        <button type="submit" class="submit-button">Yayınla</button>
+      </form>
+    </div>
+  </div>

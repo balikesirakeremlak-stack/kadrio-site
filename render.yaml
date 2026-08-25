@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: kadrio-site
+    env: node
+    plan: free
+    buildCommand: npm install --production
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: ADMIN_TOKEN
+        generateValue: true

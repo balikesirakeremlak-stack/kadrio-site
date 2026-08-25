@@ -3,7 +3,7 @@
 # Çalıştırma: PowerShell'de: `powershell -ExecutionPolicy Bypass -File .\scripts\create_and_push_github.ps1`
 
 param(
-  [string]$RepoName = "reeloram-site",
+  [string]$RepoName = "kadrio-site",
   [string]$Visibility = "public"
 )
 

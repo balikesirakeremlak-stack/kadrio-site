@@ -34,7 +34,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/reeloram-site:latest
+          tags: ghcr.io/${{ github.repository_owner }}/kadrio-site:latest
 
   deploy-railway:
     needs: build-and-publish

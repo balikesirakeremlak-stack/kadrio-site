@@ -21,5 +21,12 @@ Notlar:
 - Localtunnel geçiciydi; bu Docker yöntemi kalıcı host üzerinde çalıştırıldığında dışarıdan erişim kalıcı olur.
 
 CI/CD (GitHub Actions):
-- Repo'ya `main` branch'e push yapıldığında `.github/workflows/ci-cd.yml` çalışır, Docker image'ı `ghcr.io/${{ github.repository_owner }}/reeloram-site:latest` olarak build edip push eder.
+- Repo'ya `main` branch'e push yapıldığında `.github/workflows/ci-cd.yml` çalışır, Docker image'ı `ghcr.io/${{ github.repository_owner }}/kadrio-site:latest` olarak build edip push eder.
 - Railway ile otomatik deploy için repo secrets içine `RAILWAY_TOKEN` ekleyin; workflow bu secret bulunduğunda `railway up` ile deploy deneyecektir.
+
+Railway production kontrol listesi:
+- `NODE_ENV=production`, güçlü bir `ADMIN_TOKEN` ve canlı adresi gösteren `CORS_ORIGIN` tanımlayın.
+- SQLite ve `uploads` klasörü için Railway Volume bağlayın; volume olmadan yeniden deploy sonrası yerel veriler kalıcı değildir.
+- Production ortamında `ADMIN_TOKEN` eksikse sunucu bilerek başlamaz.
+- İlk deploy sonrası `/api/status` adresinin `200` döndürdüğünü kontrol edin.
+- Video sayısı büyüyecekse yerel volume yerine Cloudinary veya S3 kullanın.

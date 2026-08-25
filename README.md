@@ -1,4 +1,4 @@
-Reeloram, bir içerik akış ve reklam/monetizasyon platformu demosudur.
+Kadrio, bir içerik akış ve reklam/monetizasyon platformu demosudur.
 
 Dosyalar:
 - index.html
@@ -13,8 +13,13 @@ Yerel geliştirme ve gerçek demo çalıştırma:
 3. `npm start` ile sunucuyu başlatın.
 4. Tarayıcıda `http://localhost:3000` adresine gidin.
 
-Not:
-- Bu proje artık Node.js tabanlı bir backend ile çalışır.
-- `package-form` ve içerik üretici başvuruları backend'e gönderilir.
-- `index.html`, `style.css`, `app.js` ve `server.js` aynı klasörde olmalıdır.
-- `Giriş Yap` düğmesi simülasyon amaçlıdır; gerçek kimlik doğrulama eklenmelidir.
+Production başlamadan önce güvenli bir admin token tanımlayın:
+
+```powershell
+$env:ADMIN_TOKEN = "uzun-ve-tahmin-edilemez-bir-deger"
+npm start
+```
+- Kullanıcı şifreleri `crypto.scrypt` ile hashlenir.
+- Silah, cinsel içerik ve şiddet içeren içerikler metadata filtresiyle reddedilir.
+- Reel video adresleri yalnızca HTTPS olabilir.
+- Görüntü tabanlı video moderasyonu için ayrıca bir harici moderasyon servisi bağlanmalıdır.

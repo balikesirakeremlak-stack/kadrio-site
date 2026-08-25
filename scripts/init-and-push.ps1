@@ -16,7 +16,7 @@ Write-Host "Başlatılıyor: git init, commit ve push (main)"
 
 git init
 git add .
-git commit -m "Initial Reeloram site"
+git commit -m "Initial Kadrio site"
 git branch -M main
 if ((git remote) -contains 'origin') {
   Write-Host 'origin remote zaten tanımlı; push ediliyor.'
