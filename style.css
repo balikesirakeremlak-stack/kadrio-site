@@ -2,13 +2,25 @@
   box-sizing: border-box;
 }
 
+:root {
+  --ink: #0b0e12;
+  --panel: #12171d;
+  --panel-soft: #182027;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f4f5f2;
+  --muted: #98a4a7;
+  --accent: #e8b45d;
+  --accent-strong: #f07b5b;
+  --cool: #6ca6a5;
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(circle at top, rgba(65, 42, 215, 0.18), transparent 35%), #050505;
-  color: #f5f5f5;
-  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #0b0e12 0%, #10171b 52%, #0b0e12 100%);
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 body {
@@ -41,8 +53,8 @@ button {
   align-items: center;
   padding: 18px 22px;
   gap: 12px;
-  background: rgba(8, 8, 8, 0.96);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 14, 18, 0.94);
+  border-bottom: 1px solid var(--line);
   backdrop-filter: blur(18px);
 }
 
@@ -61,7 +73,7 @@ button {
 
 .brand-tag {
   font-size: 0.72rem;
-  color: #9ea6ff;
+  color: var(--cool);
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
@@ -77,14 +89,17 @@ button {
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  cursor: pointer;
 }
 
 .text-button {
   padding: 10px 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--ink);
   color: #f5f5f5;
   font-weight: 600;
 }
@@ -92,7 +107,7 @@ button {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
   margin-top: 84px;
   padding: 0 16px 0 16px;
 }
@@ -101,11 +116,11 @@ button {
   display: grid;
   grid-template-columns: 1.7fr 1fr;
   gap: 18px;
-  padding: 26px;
-  border-radius: 28px;
+  padding: 30px;
+  border-radius: 18px;
   background: linear-gradient(135deg, rgba(24, 30, 43, 0.98), rgba(7, 9, 13, 0.98));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
 }
 
 .hero-copy {
@@ -116,7 +131,7 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: #8c8cff;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.78rem;
@@ -149,12 +164,15 @@ button {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #6f5dff, #ff5f8e);
-  color: #fff;
+  background: var(--accent);
+  border-radius: 10px;
+  color: var(--ink);
+  
 }
 
 .secondary-button {
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: 1px solid var(--line);
   color: #f5f5f5;
 }
 
@@ -516,8 +534,8 @@ button {
   align-items: center;
   gap: 8px;
   padding: 12px 14px 16px;
-  background: rgba(8, 8, 8, 0.96);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 14, 18, 0.96);
+  border-top: 1px solid var(--line);
   backdrop-filter: blur(16px);
 }
 
@@ -534,7 +552,7 @@ button {
 }
 
 .nav-item.active {
-  color: #fff;
+  color: var(--accent);
 }
 
 .nav-icon {
@@ -548,16 +566,16 @@ button {
 .create-button {
   min-width: 68px;
   border-radius: 20px;
-  background: linear-gradient(135deg, #6f5dff, #ff5f8e);
+  background: var(--accent-strong);
   color: #fff;
 }
 
 .placeholder-card,
 .form-card {
   padding: 22px;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
 }
 
 .placeholder-card h2,
@@ -584,9 +602,9 @@ button {
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(111, 93, 255, 0.15), rgba(255, 255, 255, 0.04));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
 }
 
 .stat-card span {
@@ -1164,6 +1182,23 @@ button {
 
 .notification-item small {
   color: #999;
+}
+
+.submit-button,
+.comment-submit {
+  background: var(--accent);
+  color: var(--ink);
+  border-radius: 10px;
+}
+
+.reel-card {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+.reel-card .action-btn {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
 }
 
 .report-row {
