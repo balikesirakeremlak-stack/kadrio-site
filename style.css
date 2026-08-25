@@ -100,7 +100,6 @@ button {
   border-radius: 10px;
   background: var(--accent);
   color: var(--ink);
-  color: #f5f5f5;
   font-weight: 600;
 }
 
@@ -147,7 +146,7 @@ button {
 .hero-panel p {
   margin: 0;
   line-height: 1.75;
-  color: #e7e7ff;
+  color: rgba(244, 245, 242, 0.82);
 }
 
 .hero-actions {
@@ -167,7 +166,6 @@ button {
   background: var(--accent);
   border-radius: 10px;
   color: var(--ink);
-  
 }
 
 .secondary-button {
