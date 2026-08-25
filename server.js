@@ -739,6 +739,10 @@ app.get('/admin/affiliate-stats', requireAdmin, (req, res) => {
   res.json({ totalClicks: affiliateClicks.length, byAffiliate: counts, recent: affiliateClicks.slice(-100) });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.get('/api/status', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), analyticsCount: analytics.length, creatorsCount: creators.length, packageRequests: packages.length });
 });
