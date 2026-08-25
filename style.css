@@ -8,7 +8,7 @@ body {
   min-height: 100%;
   background: radial-gradient(circle at top, rgba(65, 42, 215, 0.18), transparent 35%), #050505;
   color: #f5f5f5;
-  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
 body {
@@ -55,7 +55,8 @@ button {
 .brand {
   font-size: 1.05rem;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.22em;
+  color: #ffffff;
 }
 
 .brand-tag {
@@ -102,8 +103,9 @@ button {
   gap: 18px;
   padding: 26px;
   border-radius: 28px;
-  background: linear-gradient(180deg, rgba(24, 10, 57, 0.96), rgba(5, 5, 5, 0.96));
+  background: linear-gradient(135deg, rgba(24, 30, 43, 0.98), rgba(7, 9, 13, 0.98));
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
 }
 
 .hero-copy {
@@ -124,6 +126,7 @@ button {
   margin: 0;
   font-size: clamp(2.2rem, 3.8vw, 3.5rem);
   line-height: 1.02;
+  letter-spacing: 0;
 }
 
 .hero-panel p {
