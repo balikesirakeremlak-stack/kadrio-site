@@ -497,6 +497,7 @@ async function renderAdminPage() {
 }
 
 function changePage(pageKey) {
+  document.body.classList.toggle('feed-mode', pageKey === 'akis');
   switch (pageKey) {
     case 'akis':
       renderFeed();
@@ -525,6 +526,7 @@ function changePage(pageKey) {
 // === EVENT LISTENERS ===
 document.addEventListener('DOMContentLoaded', () => {
   updateAuthUi();
+  document.body.classList.add('feed-mode');
   renderFeed();
   document.getElementById('notifications-button')?.addEventListener('click', renderNotifications);
 
