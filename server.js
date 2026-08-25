@@ -283,11 +283,9 @@ initDatabase().catch((error) => console.error('DB init error:', error));
 
 // Admin token (set via environment variable). Change in production.
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'changeme';
-if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_TOKEN) {
-  throw new Error('ADMIN_TOKEN must be set in production.');
-}
-if (ADMIN_TOKEN === 'changeme') {
-  console.warn('Warning: ADMIN_TOKEN is using default value. Set ADMIN_TOKEN env var to secure admin endpoints.');
+const effectiveAdminToken = process.env.ADMIN_TOKEN || crypto.randomBytes(32).toString('hex');
+if (!process.env.ADMIN_TOKEN) {
+  console.warn('Warning: ADMIN_TOKEN is not set. Admin access is disabled until a persistent token is configured.');
 }
 
 async function userExists(userId) {
@@ -298,7 +296,7 @@ async function userExists(userId) {
 
 function requireAdmin(req, res, next) {
   const token = req.get('x-admin-token') || req.query.token || req.headers['authorization'] && req.headers['authorization'].replace('Bearer ', '');
-  if (!token || token !== ADMIN_TOKEN) return res.status(401).json({ error: 'unauthorized' });
+  if (!token || token !== effectiveAdminToken) return res.status(401).json({ error: 'unauthorized' });
   next();
 }
 
