@@ -171,7 +171,7 @@ async function renderFeed() {
             <span class="icon">💬</span>
             <span class="count">0</span>
           </button>
-          <button class="action-btn share-btn">
+          <button class="action-btn share-btn" data-reel-id="${reel.id}" data-reel-title="${reel.title}">
             <span class="icon">📤</span>
             <span class="count">0</span>
           </button>
@@ -221,6 +221,23 @@ async function renderFeed() {
       if (!reason?.trim()) return;
       await fetchJson('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reporterId: user.id, reelId: button.dataset.reelId, reason: reason.trim() }) });
       alert('Bildirimin alındı.');
+    }));
+
+    document.querySelectorAll('.share-btn').forEach((button) => button.addEventListener('click', async () => {
+      const shareUrl = `${window.location.origin}/?reel=${encodeURIComponent(button.dataset.reelId)}`;
+      const shareData = { title: button.dataset.reelTitle || 'Kadrio reel', text: 'Kadrio’da bu reeli keşfet:', url: shareUrl };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(shareUrl);
+          alert('Reel bağlantısı kopyalandı.');
+        }
+        const countEl = button.querySelector('.count');
+        countEl.textContent = parseInt(countEl.textContent || '0', 10) + 1;
+      } catch (error) {
+        if (error.name !== 'AbortError') console.error(error);
+      }
     }));
 
     document.querySelectorAll('.comments-panel').forEach(async (panel) => {
