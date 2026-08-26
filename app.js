@@ -16,18 +16,35 @@ function getStoredUser() {
   }
 }
 
-function setStoredUser(user) {
+function setStoredUser(user, token = null) {
   if (!user) {
     localStorage.removeItem('reeloram-user');
     localStorage.removeItem('reeloram-token');
     return;
   }
   localStorage.setItem('reeloram-user', JSON.stringify(user));
-  localStorage.setItem('reeloram-token', user.id || 'temp');
+  localStorage.setItem('reeloram-token', token || localStorage.getItem('reeloram-token') || '');
 }
 
 function isLoggedIn() {
   return !!getStoredUser();
+}
+
+async function restoreSession() {
+  const user = getStoredUser();
+  const token = localStorage.getItem('reeloram-token');
+  if (!user || !token) {
+    setStoredUser(null);
+    return null;
+  }
+  try {
+    const verifiedUser = await fetchJson(`/api/user/${user.id}`);
+    setStoredUser(verifiedUser, token);
+    return verifiedUser;
+  } catch (error) {
+    setStoredUser(null);
+    return null;
+  }
 }
 
 function updateAuthUi() {
@@ -36,29 +53,34 @@ function updateAuthUi() {
 }
 
 async function registerUser(username, email, password) {
+  const normalizedUsername = (username || email || '').toString().trim();
   const response = await fetchJson('/api/user/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username: normalizedUsername, email, password })
   });
-  setStoredUser(response.user);
+  setStoredUser(response.user, response.token);
   updateAuthUi();
   return response.user;
 }
 
-async function loginUser(username, password) {
+async function loginUser(usernameOrEmail, password) {
   const response = await fetchJson('/api/user/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username: usernameOrEmail, email: usernameOrEmail, password })
   });
-  setStoredUser(response.user);
+  setStoredUser(response.user, response.token);
   updateAuthUi();
   return response.user;
 }
 
 // === API HELPERS ===
 async function fetchJson(url, options = {}) {
+  const token = localStorage.getItem('reeloram-token');
+  const headers = new Headers(options.headers || {});
+  if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+  options.headers = headers;
   const response = await fetch(`${API_BASE}${url}`, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `API hatası: ${response.status}`);
@@ -74,9 +96,17 @@ function trackEvent(action, payload = {}) {
 }
 
 // === MODAL FUNCTIONS ===
+function closeAllModals() {
+  document.querySelectorAll('.modal').forEach((modal) => {
+    modal.classList.add('hidden');
+  });
+}
+
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.remove('hidden');
+  if (!modal) return;
+  closeAllModals();
+  modal.classList.remove('hidden');
 }
 
 function closeModal(modalId) {
@@ -284,16 +314,36 @@ async function renderNotifications() {
 }
 
 async function renderCreatorPage() {
-  if (!isLoggedIn()) { openModal('login-modal'); return; }
+  if (!isLoggedIn()) {
+    pageBody.innerHTML = `
+      <section style="padding:20px;max-width:900px;margin:0 auto;">
+        <div class="form-card" style="padding:28px;">
+          <p class="eyebrow" style="margin:0 0 8px;">ÜRETİM PANELİ</p>
+          <h2 style="margin:0 0 12px;">Giriş yaparak reel yüklemeye başla</h2>
+          <p style="margin:0 0 18px; color:#c9d1dc;">İçerik üretmek için hesabına giriş yap veya sponsor paketleri için teklif talebinde bulun.</p>
+          <div class="hero-actions" style="justify-content:flex-start;">
+            <button class="submit-button" id="goto-login-btn">Giriş Yap</button>
+            <button class="secondary-button" id="creator-package-btn">Üretici Paketleri</button>
+          </div>
+        </div>
+      </section>
+    `;
+
+    document.getElementById('goto-login-btn')?.addEventListener('click', () => openModal('login-modal'));
+    document.getElementById('creator-package-btn')?.addEventListener('click', () => openModal('package-modal'));
+    return;
+  }
+
   const user = getStoredUser();
-  pageBody.innerHTML = `<section style="padding:20px;max-width:900px;margin:0 auto;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;"><h2 style="margin:0;">📊 Yönetim Paneli</h2><button class="submit-button" id="upload-reel-btn" style="cursor:pointer;">+ Yeni Reel</button></div><div class="stats-grid"><div class="stat-card"><span>Reeller</span><strong id="stat-reels">0</strong></div><div class="stat-card"><span>Beğeni</span><strong id="stat-likes">0</strong></div><div class="stat-card"><span>Görüntülenme</span><strong id="stat-views">0</strong></div><div class="stat-card"><span>Takipçi</span><strong id="stat-followers">0</strong></div></div><h3 style="margin-top:30px;margin-bottom:15px;">Reellerim</h3><div id="creator-reels" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;"></div></section>`;
+  pageBody.innerHTML = `<section style="padding:20px;max-width:900px;margin:0 auto;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;"><h2 style="margin:0;">📊 Yönetim Paneli</h2><div style="display:flex;gap:10px;align-items:center;"><button class="secondary-button" id="package-request-btn" style="cursor:pointer;">Üretici Paketleri</button><button class="submit-button" id="upload-reel-btn" style="cursor:pointer;">+ Yeni Reel</button></div></div><div class="stats-grid"><div class="stat-card"><span>Reeller</span><strong id="stat-reels">0</strong></div><div class="stat-card"><span>Beğeni</span><strong id="stat-likes">0</strong></div><div class="stat-card"><span>Görüntülenme</span><strong id="stat-views">0</strong></div><div class="stat-card"><span>Takipçi</span><strong id="stat-followers">0</strong></div></div><h3 style="margin-top:30px;margin-bottom:15px;">Reellerim</h3><div id="creator-reels" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;"></div></section>`;
   document.getElementById('upload-reel-btn').addEventListener('click', () => openModal('reel-upload-modal'));
+  document.getElementById('package-request-btn')?.addEventListener('click', () => openModal('package-modal'));
   try {
     const { reels } = await fetchJson(`/api/reels/user/${user.id}`);
     const reelDiv = document.getElementById('creator-reels');
     if (reels && reels.length) {
       let tl=0, tv=0;
-      reelDiv.innerHTML = reels.map(r => { tl+=r.likes||0; tv+=r.views||0; return `<div class="creator-reel-card" data-reel-id="${r.id}" style="background:#1a1a1a;border-radius:8px;overflow:hidden;border:1px solid #333;"><div style="aspect-ratio:1;overflow:hidden;background:#000;"><video src="${r.videoUrl}" style="width:100%;height:100%;object-fit:cover;" controls></video></div><div style="padding:8px;"><h5 style="margin:0;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</h5><p style="margin:4px 0;font-size:0.75rem;color:#999;">❤️ ${r.likes||0} 👁️ ${r.views||0}</p><div style="display:flex;gap:6px;"><button class="edit-reel-btn" data-reel-id="${r.id}">Düzenle</button><button class="delete-reel-btn" data-reel-id="${r.id}">Sil</button></div></div></div>`; }).join('');
+      reelDiv.innerHTML = reels.map(r => { tl+=r.likes||0; tv+=r.views||0; const statusLabel = r.status === 'published' ? 'Yayında' : r.status === 'rejected' ? 'Reddedildi' : 'İncelemede'; return `<div class="creator-reel-card" data-reel-id="${r.id}" style="background:#1a1a1a;border-radius:8px;overflow:hidden;border:1px solid #333;"><div style="aspect-ratio:1;overflow:hidden;background:#000;"><video src="${r.videoUrl}" style="width:100%;height:100%;object-fit:cover;" controls></video></div><div style="padding:8px;"><h5 style="margin:0;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</h5><p style="margin:4px 0;font-size:0.75rem;color:#999;">❤️ ${r.likes||0} 👁️ ${r.views||0}</p><p style="margin:4px 0;font-size:0.75rem;color:#c9d1dc;">Durum: ${statusLabel}</p><div style="display:flex;gap:6px;"><button class="edit-reel-btn" data-reel-id="${r.id}">Düzenle</button><button class="delete-reel-btn" data-reel-id="${r.id}">Sil</button></div></div></div>`; }).join('');
       document.getElementById('stat-reels').textContent = reels.length;
       document.getElementById('stat-likes').textContent = tl;
       document.getElementById('stat-views').textContent = tv;
@@ -342,13 +392,30 @@ async function renderProfilePage(profileUserId) {
           <div class="stat-card"><span>Görüntülenme</span><strong>${totalViews}</strong></div>
         </div>
         <div class="profile-actions">
-          ${user ? '<button id="go-admin" class="submit-button">Creator Dashboard</button><button id="logout-btn" class="secondary-button">Çıkış Yap</button>' : '<button id="follow-btn" class="submit-button">' + (data.isFollowing ? 'Takibi Bırak' : 'Takip Et') + '</button>'}
+          ${user ? '<button id="edit-profile-btn" class="submit-button">Profili Düzenle</button><button id="go-admin" class="secondary-button">Creator Dashboard</button><button id="logout-btn" class="secondary-button">Çıkış Yap</button>' : '<button id="follow-btn" class="submit-button">' + (data.isFollowing ? 'Takibi Bırak' : 'Takip Et') + '</button>'}
         </div>
         <h3>Reeller</h3>
         <div class="profile-reels">${reels.length ? reels.map((reel) => `<article class="profile-reel"><video src="${reel.videoUrl}" controls></video><strong>${reel.title}</strong></article>`).join('') : '<p class="muted">Henüz yayınlanmış reel yok.</p>'}</div>
       </section>`;
 
     if (user) {
+      document.getElementById('edit-profile-btn').addEventListener('click', async () => {
+        const bio = prompt('Bio:', creator.bio || '');
+        if (bio === null) return;
+        const avatar = prompt('Avatar harfi veya kısa metin:', creator.avatar || creator.username.charAt(0).toUpperCase());
+        if (avatar === null) return;
+        try {
+          const result = await fetchJson(`/api/user/${user.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bio: bio.trim().slice(0, 300), avatar: avatar.trim().slice(0, 2) })
+          });
+          setStoredUser(result.user, localStorage.getItem('reeloram-token'));
+          renderProfilePage(user.id);
+        } catch (error) {
+          alert(error.message || 'Profil güncellenemedi');
+        }
+      });
       document.getElementById('go-admin').addEventListener('click', () => renderCreatorPage());
       document.getElementById('logout-btn').addEventListener('click', () => { setStoredUser(null); updateAuthUi(); renderFeed(); });
     } else {
@@ -415,16 +482,21 @@ function renderLegacyProfilePage() {
 }
 
 async function renderAdminPage() {
-  const token = localStorage.getItem('reeloram-admin-token') || 'devtoken';
+  const token = localStorage.getItem('reeloram-admin-token') || '';
   pageBody.innerHTML = `
     <section class="form-card">
       <h2>Yönetim Paneli</h2>
       <div class="admin-token-row">
         <label>Yönetim Tokeni</label>
-        <input id="admin-token-input" type="password" value="${token}" />
+        <input id="admin-token-input" type="password" value="${token}" placeholder="ADMIN_TOKEN girin" />
         <button id="admin-load-btn" class="submit-button">Yükle</button>
       </div>
+      <p class="muted" style="margin-top:12px;">Admin erişimi için sunucu tarafında güvenli bir ADMIN_TOKEN ayarlı olmalıdır.</p>
       <div id="admin-status-grid" class="stats-grid"></div>
+      <div class="admin-list-wrap">
+        <h3>Moderasyon Kuyruğu</h3>
+        <ul id="admin-moderation" class="admin-list"></ul>
+      </div>
       <div class="admin-list-wrap">
         <h3>Creator Talepleri</h3>
         <ul id="admin-creators" class="admin-list"></ul>
@@ -446,10 +518,24 @@ async function renderAdminPage() {
   const loadData = async () => {
     const activeToken = tokenInput.value.trim();
     localStorage.setItem('reeloram-admin-token', activeToken);
+
+    if (!activeToken) {
+      document.getElementById('admin-status-grid').innerHTML = `
+        <div class="stat-card"><span>Status</span><strong>Token gerekli</strong></div>
+        <div class="stat-card"><span>Admin</span><strong>Kapalı</strong></div>
+        <div class="stat-card"><span>Token</span><strong>Yok</strong></div>
+        <div class="stat-card"><span>Durum</span><strong>Bekliyor</strong></div>
+      `;
+      document.getElementById('admin-creators').innerHTML = '<li>Admin erişimi için token girin.</li>';
+      document.getElementById('admin-packages').innerHTML = '<li>Admin erişimi için token girin.</li>';
+      document.getElementById('admin-reports').innerHTML = '<li>Admin erişimi için token girin.</li>';
+      return;
+    }
     
     try {
-      const [status, creators, packages, reports] = await Promise.all([
+      const [status, moderation, creators, packages, reports] = await Promise.all([
         fetchJson('/api/status'),
+        fetchJson('/admin/reels?status=pending', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/creators', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/packages', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/reports', { headers: { 'x-admin-token': activeToken } })
@@ -461,6 +547,15 @@ async function renderAdminPage() {
         <div class="stat-card"><span>Packages</span><strong>${status.packageRequests}</strong></div>
         <div class="stat-card"><span>Events</span><strong>${status.analyticsCount}</strong></div>
       `;
+
+      const moderationRows = moderation.reels || [];
+      document.getElementById('admin-moderation').innerHTML = moderationRows.length
+        ? moderationRows.map(r => `<li class="report-row"><strong>Reel #${r.id} · ${r.username}</strong><small>${r.title}</small><button class="moderation-status-btn" data-reel-id="${r.id}" data-status="published">Yayınla</button><button class="moderation-status-btn" data-reel-id="${r.id}" data-status="rejected">Reddet</button></li>`).join('')
+        : '<li>Bekleyen içerik yok</li>';
+      document.querySelectorAll('.moderation-status-btn').forEach((button) => button.addEventListener('click', async () => {
+        await fetchJson(`/admin/reel/${button.dataset.reelId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-token': activeToken }, body: JSON.stringify({ status: button.dataset.status }) });
+        loadData();
+      }));
 
       const creatorRows = (creators.creators || []).slice(-10);
       document.getElementById('admin-creators').innerHTML = creatorRows.length 
@@ -497,6 +592,7 @@ async function renderAdminPage() {
 }
 
 function changePage(pageKey) {
+  closeAllModals();
   document.body.classList.toggle('feed-mode', pageKey === 'akis');
   switch (pageKey) {
     case 'akis':
@@ -525,9 +621,11 @@ function changePage(pageKey) {
 
 // === EVENT LISTENERS ===
 document.addEventListener('DOMContentLoaded', () => {
-  updateAuthUi();
-  document.body.classList.add('feed-mode');
-  renderFeed();
+  restoreSession().finally(() => {
+    updateAuthUi();
+    document.body.classList.add('feed-mode');
+    renderFeed();
+  });
   document.getElementById('notifications-button')?.addEventListener('click', renderNotifications);
 
   document.querySelector('.icon-button')?.addEventListener('click', () => {
@@ -562,26 +660,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // Login Form
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
+    let registerMode = false;
+    const authTitle = document.querySelector('#login-modal h3');
+    const authSubmitButton = document.getElementById('auth-submit-button');
+    const authModeToggle = document.getElementById('auth-mode-toggle');
+    const registerUsernameGroup = document.getElementById('register-username-group');
+    const passwordInput = loginForm.querySelector('#login-password');
+    authModeToggle?.addEventListener('click', () => {
+      registerMode = !registerMode;
+      authTitle.textContent = registerMode ? 'Hesap Oluştur' : 'Giriş Yap';
+      authSubmitButton.textContent = registerMode ? 'Kayıt Ol' : 'Giriş Yap';
+      authModeToggle.textContent = registerMode ? 'Giriş yap' : 'Hesap oluştur';
+      registerUsernameGroup.classList.toggle('hidden', !registerMode);
+      passwordInput.autocomplete = registerMode ? 'new-password' : 'current-password';
+    });
+
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = loginForm.querySelector('#login-email').value.trim();
+      const identity = loginForm.querySelector('#login-email').value.trim();
+      const username = loginForm.querySelector('#register-username').value.trim();
       const password = loginForm.querySelector('#login-password')?.value || '';
-      if (!email || password.length < 6) { alert('E-posta ve en az 6 karakterli şifre gerekli'); return; }
+      if (!identity || password.length < (registerMode ? 8 : 6)) { alert(registerMode ? 'Kullanıcı adı/e-posta ve en az 8 karakterli şifre gerekli' : 'Kullanıcı adı/e-posta ve en az 6 karakterli şifre gerekli'); return; }
+      if (registerMode && username.length < 3) { alert('En az 3 karakterli kullanıcı adı gerekli'); return; }
       
       try {
-        const user = await loginUser(email, password);
-        alert(`Hoşgeldin, ${user.username}!`);
+        const user = registerMode
+          ? await registerUser(username, identity, password)
+          : await loginUser(identity, password);
+        alert(registerMode ? 'Hesabın oluşturuldu!' : `Hoşgeldin, ${user.username}!`);
         closeModal('login-modal');
         changePage('akis');
       } catch (error) {
-        try {
-          const user = await registerUser(email, email, password);
-          alert(`Hesap oluşturuldu!`);
-          closeModal('login-modal');
-          changePage('akis');
-        } catch (regError) {
-          alert('Giriş başarısız');
-        }
+        alert(error.message || (registerMode ? 'Kayıt başarısız' : 'Giriş başarısız'));
       }
       loginForm.reset();
     });

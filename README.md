@@ -13,12 +13,17 @@ Yerel geliştirme ve gerçek demo çalıştırma:
 3. `npm start` ile sunucuyu başlatın.
 4. Tarayıcıda `http://localhost:3000` adresine gidin.
 
-Production başlamadan önce güvenli bir admin token tanımlayın:
+Production başlamadan önce güvenli admin ve session secret değerleri tanımlayın:
 
 ```powershell
 $env:ADMIN_TOKEN = "uzun-ve-tahmin-edilemez-bir-deger"
+$env:SESSION_SECRET = "farkli-uzun-ve-tahmin-edilemez-bir-deger"
+$env:NODE_ENV = "production"
 npm start
 ```
+- `SESSION_SECRET`, `ADMIN_TOKEN` ile aynı değer olmamalıdır.
+- Railway/Render üzerinde bu iki değer secret environment variable olarak tanımlanmalıdır.
+- Kalıcı disk veya object storage bağlanmadan `database/` ve `uploads/` verileri yeniden deploy sırasında kaybolabilir.
 - Kullanıcı şifreleri `crypto.scrypt` ile hashlenir.
 - Silah, cinsel içerik ve şiddet içeren içerikler metadata filtresiyle reddedilir.
 - Reel video adresleri yalnızca HTTPS olabilir.

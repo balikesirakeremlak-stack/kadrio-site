@@ -12,3 +12,5 @@ services:
         value: 3000
       - key: ADMIN_TOKEN
         generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true

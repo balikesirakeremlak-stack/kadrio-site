@@ -69,12 +69,17 @@
       <h3>Giriş Yap</h3>
       <form id="login-form" class="form-grid">
         <div class="input-group">
-          <label for="login-email">E-posta</label>
-          <input id="login-email" type="email" placeholder="mail@ornek.com" required />
+          <label for="login-email">E-posta veya kullanıcı adı</label>
+          <input id="login-email" type="text" autocomplete="username" placeholder="kullanici veya mail@ornek.com" required />
+          <div id="register-username-group" class="hidden">
+            <label for="register-username">Kullanıcı adı</label>
+            <input id="register-username" type="text" autocomplete="username" minlength="3" maxlength="30" placeholder="kullaniciadi" />
+          </div>
           <label for="login-password">Şifre</label>
-          <input id="login-password" type="password" minlength="6" placeholder="En az 6 karakter" required />
+          <input id="login-password" type="password" autocomplete="current-password" minlength="6" placeholder="En az 6 karakter" required />
         </div>
-        <button type="submit" class="submit-button">Giriş / Kaydol</button>
+        <button type="submit" class="submit-button" id="auth-submit-button">Giriş Yap</button>
+        <button type="button" class="text-button auth-mode-toggle" id="auth-mode-toggle">Hesap oluştur</button>
       </form>
     </div>
   </div>

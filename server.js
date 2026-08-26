@@ -13,8 +13,14 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const app = express();
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must be configured in production.');
+if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
+if (isProduction && process.env.ADMIN_TOKEN === process.env.SESSION_SECRET) throw new Error('ADMIN_TOKEN and SESSION_SECRET must be different in production.');
+const sessionSecret = process.env.SESSION_SECRET || process.env.ADMIN_TOKEN || 'local-development-session-secret';
 
-const corsOrigin = process.env.CORS_ORIGIN || true;
+const corsOrigin = process.env.CORS_ORIGIN || (isProduction ? false : true);
+app.set('trust proxy', 1);
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname)));
@@ -27,6 +33,8 @@ app.use((req, res, next) => {
 });
 
 const requestWindows = new Map();
+const authWindows = new Map();
+const publicWriteWindows = new Map();
 app.use('/api', (req, res, next) => {
   const now = Date.now();
   const key = req.ip || req.socket.remoteAddress || 'unknown';
@@ -42,6 +50,32 @@ app.use('/api', (req, res, next) => {
       if (now - storedWindow.startedAt >= 60_000) requestWindows.delete(storedKey);
     }
   }
+  next();
+});
+
+app.use(['/api/user/login', '/api/user/register'], (req, res, next) => {
+  const now = Date.now();
+  const key = req.ip || req.socket.remoteAddress || 'unknown';
+  const windowData = authWindows.get(key);
+  if (!windowData || now - windowData.startedAt >= 60_000) {
+    authWindows.set(key, { startedAt: now, count: 1 });
+    return next();
+  }
+  windowData.count += 1;
+  if (windowData.count > 10) return res.status(429).json({ error: 'Çok fazla giriş denemesi. Bir dakika sonra tekrar deneyin.' });
+  next();
+});
+
+app.use(['/api/track', '/api/creator', '/api/package-request'], (req, res, next) => {
+  const now = Date.now();
+  const key = `${req.ip || req.socket.remoteAddress || 'unknown'}:${req.path}`;
+  const windowData = publicWriteWindows.get(key);
+  if (!windowData || now - windowData.startedAt >= 60_000) {
+    publicWriteWindows.set(key, { startedAt: now, count: 1 });
+    return next();
+  }
+  windowData.count += 1;
+  if (windowData.count > 20) return res.status(429).json({ error: 'Çok fazla talep. Lütfen biraz bekleyin.' });
   next();
 });
 
@@ -90,6 +124,42 @@ async function verifyPassword(password, storedHash) {
   const derivedKey = await scryptAsync(password, salt, 64);
   const expected = Buffer.from(key, 'hex');
   return expected.length === derivedKey.length && crypto.timingSafeEqual(expected, derivedKey);
+}
+
+function sanitizeUser(user) {
+  if (!user) return user;
+  const safeUser = { ...user };
+  delete safeUser.passwordHash;
+  return safeUser;
+}
+
+function createSessionToken(userId) {
+  const payload = Buffer.from(JSON.stringify({ userId: Number(userId), exp: Date.now() + 7 * 24 * 60 * 60 * 1000 })).toString('base64url');
+  const signature = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function getSessionUserId(req) {
+  const header = req.get('authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (!token) return null;
+  const [payload, signature] = token.split('.');
+  if (!payload || !signature) return null;
+  const expected = crypto.createHmac('sha256', sessionSecret).update(payload).digest('base64url');
+  if (signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return null;
+  try {
+    const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return session.exp > Date.now() && Number.isInteger(session.userId) ? session.userId : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function requireUser(req, res, next) {
+  const userId = getSessionUserId(req);
+  if (!userId || !(await userExists(userId))) return res.status(401).json({ error: 'authenticated session required' });
+  req.userId = userId;
+  next();
 }
 
 const blockedReelTerms = [
@@ -281,11 +351,11 @@ async function initDatabase() {
 
 initDatabase().catch((error) => console.error('DB init error:', error));
 
-// Admin token (set via environment variable). Change in production.
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'changeme';
-const effectiveAdminToken = process.env.ADMIN_TOKEN || crypto.randomBytes(32).toString('hex');
-if (!process.env.ADMIN_TOKEN) {
-  console.warn('Warning: ADMIN_TOKEN is not set. Admin access is disabled until a persistent token is configured.');
+// Admin token (must be set in production via environment variable).
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const effectiveAdminToken = process.env.ADMIN_TOKEN || '';
+if (!effectiveAdminToken) {
+  console.warn('Warning: ADMIN_TOKEN is not set. Admin routes are disabled until a persistent token is configured.');
 }
 
 async function userExists(userId) {
@@ -295,6 +365,10 @@ async function userExists(userId) {
 }
 
 function requireAdmin(req, res, next) {
+  if (!effectiveAdminToken) {
+    return res.status(503).json({ error: 'admin access disabled', adminConfigured: false });
+  }
+
   const token = req.get('x-admin-token') || req.query.token || req.headers['authorization'] && req.headers['authorization'].replace('Bearer ', '');
   if (!token || token !== effectiveAdminToken) return res.status(401).json({ error: 'unauthorized' });
   next();
@@ -419,15 +493,17 @@ app.get('/api/reels', (req, res) => {
 });
 
 app.post('/api/track', async (req, res) => {
+  const action = String(req.body.action || 'track').trim().slice(0, 80);
   const event = {
     timestamp: new Date().toISOString(),
-    ...req.body,
+    action,
+    payload: req.body.payload || {}
   };
 
   try {
     await runDb('INSERT INTO analytics (timestamp, action, payload) VALUES (?, ?, ?)', [
       event.timestamp,
-      event.action || 'track',
+      event.action,
       JSON.stringify(event)
     ]);
     analytics.push(event);
@@ -439,9 +515,17 @@ app.post('/api/track', async (req, res) => {
 });
 
 app.post('/api/creator', async (req, res) => {
+  const name = String(req.body.name || '').trim().slice(0, 100);
+  const email = String(req.body.email || '').trim().toLowerCase().slice(0, 160);
+  const channel = String(req.body.channel || '').trim().slice(0, 200);
+  const message = String(req.body.message || '').trim().slice(0, 1000);
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'geçerli ad ve email gerekli' });
   const creator = {
     timestamp: new Date().toISOString(),
-    ...req.body,
+    name,
+    email,
+    channel,
+    message
   };
 
   try {
@@ -461,10 +545,18 @@ app.post('/api/creator', async (req, res) => {
 });
 
 app.post('/api/package-request', async (req, res) => {
+  const company = String(req.body.company || '').trim().slice(0, 160);
+  const budget = String(req.body.budget || '').trim().slice(0, 40);
+  const campaignType = String(req.body.campaignType || '').trim().slice(0, 80);
+  const campaignGoal = String(req.body.campaignGoal || '').trim().slice(0, 1000);
+  if (!company || !budget || !campaignType || !campaignGoal) return res.status(400).json({ error: 'paket talebi alanları gerekli' });
   const request = {
     timestamp: new Date().toISOString(),
     status: 'pending',
-    ...req.body,
+    company,
+    budget,
+    campaignType,
+    campaignGoal
   };
 
   try {
@@ -486,29 +578,41 @@ app.post('/api/package-request', async (req, res) => {
 
 // User Authentication & Profile endpoints
 app.post('/api/user/register', async (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username || !email || !password || password.length < 6) {
-    return res.status(400).json({ error: 'username, email and password (min 6 chars) required' });
+  const rawUsername = String(req.body.username || '').trim();
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password.length < 8) {
+    return res.status(400).json({ error: 'geçerli email ve en az 8 karakterli şifre gerekli' });
   }
 
+  const normalizedUsername = (rawUsername || email.split('@')[0] || 'creator').toLowerCase();
+  if (!/^[a-z0-9_.-]{3,30}$/.test(normalizedUsername)) {
+    return res.status(400).json({ error: 'kullanıcı adı 3-30 karakter olmalı; yalnızca harf, rakam, ., _ ve - kullanılabilir' });
+  }
   const user = {
-    username,
+    username: normalizedUsername,
     email,
-    avatar: username.charAt(0).toUpperCase(),
+    avatar: normalizedUsername.charAt(0).toUpperCase(),
     bio: '',
     timestamp: new Date().toISOString(),
   };
 
   try {
+    const existingUsers = await allDb(
+      'SELECT id FROM users WHERE lower(username) = lower(?) OR lower(email) = lower(?) LIMIT 1',
+      [user.username, user.email]
+    );
+    if (existingUsers.length) return res.status(409).json({ error: 'username or email already exists' });
     const passwordHash = await hashPassword(password);
     const result = await runDb(
       'INSERT INTO users (username, email, passwordHash, avatar, bio, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
       [user.username, user.email, passwordHash, user.avatar, user.bio, user.timestamp]
     );
-    res.status(201).json({ success: true, user: { id: result.id, ...user } });
+    res.status(201).json({ success: true, token: createSessionToken(result.id), user: { id: result.id, ...user } });
   } catch (error) {
     if (error.message.includes('UNIQUE')) {
-      res.status(409).json({ error: 'username already exists' });
+      res.status(409).json({ error: 'username or email already exists' });
     } else {
       res.status(500).json({ error: 'registration failed' });
     }
@@ -516,13 +620,15 @@ app.post('/api/user/register', async (req, res) => {
 });
 
 app.post('/api/user/login', async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ error: 'username and password required' });
+  const identity = String(req.body.username || req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+
+  if (!identity || !password) {
+    return res.status(400).json({ error: 'username or email and password required' });
   }
 
   try {
-    const rows = await allDb('SELECT * FROM users WHERE username = ?', [username]);
+    const rows = await allDb('SELECT * FROM users WHERE username = ? OR email = ?', [identity, identity]);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'user not found' });
     }
@@ -531,7 +637,7 @@ app.post('/api/user/login', async (req, res) => {
       return res.status(401).json({ error: 'invalid credentials' });
     }
     delete user.passwordHash;
-    res.json({ success: true, user });
+    res.json({ success: true, token: createSessionToken(user.id), user });
   } catch (error) {
     res.status(500).json({ error: 'login failed' });
   }
@@ -544,15 +650,16 @@ app.get('/api/user/:userId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'user not found' });
     }
-    res.json(rows[0]);
+    res.json(sanitizeUser(rows[0]));
   } catch (error) {
     res.status(500).json({ error: 'failed to fetch user' });
   }
 });
 
-app.put('/api/user/:userId', async (req, res) => {
+app.put('/api/user/:userId', requireUser, async (req, res) => {
   const { userId } = req.params;
   const { bio, avatar } = req.body;
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
   try {
     await runDb('UPDATE users SET bio = ?, avatar = ? WHERE id = ?', [bio || '', avatar || '', userId]);
@@ -560,7 +667,7 @@ app.put('/api/user/:userId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'user not found' });
     }
-    res.json({ success: true, user: rows[0] });
+    res.json({ success: true, user: sanitizeUser(rows[0]) });
   } catch (error) {
     res.status(500).json({ error: 'profile update failed' });
   }
@@ -586,10 +693,11 @@ app.get('/api/search', async (req, res) => {
   } catch (error) { res.status(500).json({ error: 'search failed' }); }
 });
 
-app.post('/api/user/:userId/follow', async (req, res) => {
+app.post('/api/user/:userId/follow', requireUser, async (req, res) => {
   const followingId = Number(req.params.userId);
   const followerId = Number(req.body.followerId);
   if (!followerId || !followingId || followerId === followingId) return res.status(400).json({ error: 'invalid follow request' });
+    if (followerId !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
     if (!(await userExists(followerId)) || !(await userExists(followingId))) return res.status(404).json({ error: 'user not found' });
   try {
     const existing = await allDb('SELECT id FROM follows WHERE followerId = ? AND followingId = ?', [followerId, followingId]);
@@ -613,23 +721,26 @@ app.get('/api/user/:userId/followers', async (req, res) => {
   } catch (error) { res.status(500).json({ error: 'failed to fetch followers' }); }
 });
 
-app.get('/api/user/:userId/notifications', async (req, res) => {
+app.get('/api/user/:userId/notifications', requireUser, async (req, res) => {
+  if (Number(req.params.userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
     const rows = await allDb('SELECT n.*, u.username as actorUsername FROM notifications n LEFT JOIN users u ON u.id = n.actorId WHERE n.userId = ? ORDER BY n.timestamp DESC LIMIT 50', [req.params.userId]);
     res.json({ notifications: rows });
   } catch (error) { res.status(500).json({ error: 'failed to fetch notifications' }); }
 });
 
-app.put('/api/notification/:notificationId/read', async (req, res) => {
+app.put('/api/notification/:notificationId/read', requireUser, async (req, res) => {
+  if (Number(req.body.userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
     await runDb('UPDATE notifications SET isRead = 1 WHERE id = ? AND userId = ?', [req.params.notificationId, req.body.userId]);
     res.json({ success: true });
   } catch (error) { res.status(500).json({ error: 'notification update failed' }); }
 });
 
-app.post('/api/report', async (req, res) => {
+app.post('/api/report', requireUser, async (req, res) => {
   const { reporterId, reelId, commentId, reason } = req.body;
   if (!reporterId || (!reelId && !commentId) || !reason || String(reason).length > 300) return res.status(400).json({ error: 'reporterId, target and reason required' });
+  if (Number(reporterId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
     const result = await runDb('INSERT INTO reports (reporterId, reelId, commentId, reason, timestamp) VALUES (?, ?, ?, ?, ?)', [reporterId, reelId || null, commentId || null, String(reason).trim(), new Date().toISOString()]);
     res.status(201).json({ success: true, reportId: result.id });
@@ -660,6 +771,24 @@ app.get('/admin/reports', requireAdmin, async (req, res) => {
     const rows = await allDb('SELECT r.*, u.username as reporterUsername FROM reports r JOIN users u ON u.id = r.reporterId ORDER BY r.timestamp DESC LIMIT 100');
     res.json({ reports: rows });
   } catch (error) { res.status(500).json({ error: 'failed to fetch reports' }); }
+});
+
+app.get('/admin/reels', requireAdmin, async (req, res) => {
+  try {
+    const status = ['pending', 'published', 'rejected'].includes(req.query.status) ? req.query.status : 'pending';
+    const rows = await allDb('SELECT r.*, u.username FROM reels r JOIN users u ON u.id = r.userId WHERE r.status = ? ORDER BY r.timestamp DESC LIMIT 100', [status]);
+    res.json({ reels: rows });
+  } catch (error) { res.status(500).json({ error: 'failed to fetch moderation queue' }); }
+});
+
+app.put('/admin/reel/:reelId/status', requireAdmin, async (req, res) => {
+  const { status } = req.body;
+  if (!['pending', 'published', 'rejected'].includes(status)) return res.status(400).json({ error: 'invalid reel status' });
+  try {
+    const result = await runDb('UPDATE reels SET status = ? WHERE id = ?', [status, req.params.reelId]);
+    if (!result.changes) return res.status(404).json({ error: 'reel not found' });
+    res.json({ success: true, status });
+  } catch (error) { res.status(500).json({ error: 'reel status update failed' }); }
 });
 
 app.put('/admin/report/:reportId/status', requireAdmin, async (req, res) => {
@@ -739,12 +868,24 @@ app.get('/admin/affiliate-stats', requireAdmin, (req, res) => {
   res.json({ totalClicks: affiliateClicks.length, byAffiliate: counts, recent: affiliateClicks.slice(-100) });
 });
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get('/health', async (req, res) => {
+  try {
+    await allDb('SELECT 1 as ok');
+    res.status(200).json({ status: 'ok', database: 'ok' });
+  } catch (error) {
+    res.status(503).json({ status: 'degraded', database: 'unavailable' });
+  }
 });
 
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), analyticsCount: analytics.length, creatorsCount: creators.length, packageRequests: packages.length });
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    analyticsCount: analytics.length,
+    creatorsCount: creators.length,
+    packageRequests: packages.length,
+    adminConfigured: Boolean(effectiveAdminToken)
+  });
 });
 
 // Admin endpoints for quick monitoring
@@ -775,7 +916,7 @@ app.get('/admin/access-log', requireAdmin, (req, res) => {
 });
 
 // Reel Management APIs
-app.post('/api/reel', (req, res, next) => videoUpload.single('video')(req, res, (error) => {
+app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video')(req, res, (error) => {
   if (error) return res.status(422).json({ error: error.message || 'Video yüklenemedi.' });
   next();
 }), async (req, res) => {
@@ -783,6 +924,7 @@ app.post('/api/reel', (req, res, next) => videoUpload.single('video')(req, res, 
   if (!userId || !title) {
     return res.status(400).json({ error: 'userId and title required' });
   }
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
   const uploadedVideoUrl = req.file ? `/uploads/${req.file.filename}` : videoUrl;
   const reel = {
@@ -792,7 +934,7 @@ app.post('/api/reel', (req, res, next) => videoUpload.single('video')(req, res, 
     videoUrl: uploadedVideoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     duration: 30,
     tags: Array.isArray(tags) ? tags.join(',') : (tags || ''),
-    status: 'published',
+    status: 'pending',
     timestamp: new Date().toISOString()
   };
 
@@ -820,8 +962,9 @@ app.post('/api/reel', (req, res, next) => videoUpload.single('video')(req, res, 
   }
 });
 
-app.get('/api/reels/user/:userId', async (req, res) => {
+app.get('/api/reels/user/:userId', requireUser, async (req, res) => {
   const { userId } = req.params;
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
     const rows = await allDb('SELECT * FROM reels WHERE userId = ? ORDER BY timestamp DESC', [userId]);
     res.json({ reels: rows });
@@ -830,10 +973,11 @@ app.get('/api/reels/user/:userId', async (req, res) => {
   }
 });
 
-app.put('/api/reel/:reelId', async (req, res) => {
+app.put('/api/reel/:reelId', requireUser, async (req, res) => {
   const { reelId } = req.params;
   const { userId, title, description, tags, videoUrl } = req.body;
   if (!userId || !title) return res.status(400).json({ error: 'userId and title required' });
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   if (videoUrl && !validateVideoUrl(videoUrl)) return res.status(422).json({ error: 'Video yalnızca güvenli HTTPS adresinden yüklenebilir.' });
   const blockedTerm = moderateReelContent({ title, description, tags, videoUrl });
   if (blockedTerm) return res.status(422).json({ error: 'Bu içerik güvenlik kuralları nedeniyle yayınlanamaz.' });
@@ -850,10 +994,11 @@ app.put('/api/reel/:reelId', async (req, res) => {
   }
 });
 
-app.delete('/api/reel/:reelId', async (req, res) => {
+app.delete('/api/reel/:reelId', requireUser, async (req, res) => {
   const { reelId } = req.params;
   const { userId } = req.body;
   if (!userId) return res.status(400).json({ error: 'userId required' });
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
     await runDb('DELETE FROM reel_likes WHERE reelId = ?', [reelId]);
     await runDb('DELETE FROM reel_comments WHERE reelId = ?', [reelId]);
@@ -868,7 +1013,7 @@ app.delete('/api/reel/:reelId', async (req, res) => {
 app.get('/api/reel/:reelId', async (req, res) => {
   const { reelId } = req.params;
   try {
-    const rows = await allDb('SELECT r.*, u.username, u.avatar FROM reels r JOIN users u ON r.userId = u.id WHERE r.id = ?', [reelId]);
+    const rows = await allDb('SELECT r.*, u.username, u.avatar FROM reels r JOIN users u ON r.userId = u.id WHERE r.id = ? AND r.status = ?', [reelId, 'published']);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'reel not found' });
     }
@@ -881,12 +1026,13 @@ app.get('/api/reel/:reelId', async (req, res) => {
   }
 });
 
-app.post('/api/reel/:reelId/like', async (req, res) => {
+app.post('/api/reel/:reelId/like', requireUser, async (req, res) => {
   const { reelId } = req.params;
   const { userId } = req.body;
   if (!userId) {
     return res.status(400).json({ error: 'userId required' });
   }
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
   try {
     if (!(await userExists(userId))) return res.status(404).json({ error: 'user not found' });
@@ -908,12 +1054,13 @@ app.post('/api/reel/:reelId/like', async (req, res) => {
   }
 });
 
-app.post('/api/reel/:reelId/comment', async (req, res) => {
+app.post('/api/reel/:reelId/comment', requireUser, async (req, res) => {
   const { reelId } = req.params;
   const { userId, comment } = req.body;
   if (!userId || !comment || String(comment).trim().length > 500) {
     return res.status(400).json({ error: 'userId and comment required' });
   }
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
   try {
     if (!(await userExists(userId))) return res.status(404).json({ error: 'user not found' });
@@ -933,9 +1080,10 @@ app.post('/api/reel/:reelId/comment', async (req, res) => {
 });
 
 // Creator Profile APIs
-app.post('/api/creator-profile/:userId', async (req, res) => {
+app.post('/api/creator-profile/:userId', requireUser, async (req, res) => {
   const { userId } = req.params;
   const { category } = req.body;
+  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
   try {
     const existing = await allDb('SELECT id FROM creator_profiles WHERE userId = ?', [userId]);
@@ -971,7 +1119,7 @@ app.get('/api/creator/:userId', async (req, res) => {
     }
     
     res.json({
-      user: userRows[0],
+      user: sanitizeUser(userRows[0]),
       profile: profileRows[0] || null,
       reels: reelRows,
       followerCount: followerCount[0]?.count || 0,
@@ -986,7 +1134,8 @@ app.get('/api/creator/:userId', async (req, res) => {
 // Popular Reels Feed
 app.get('/api/feed', async (req, res) => {
   try {
-    const limit = req.query.limit || 20;
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
     const rows = await allDb(
       'SELECT r.*, u.username, u.avatar, (SELECT COUNT(*) FROM reel_likes WHERE reelId = r.id) as likeCount FROM reels r JOIN users u ON r.userId = u.id WHERE r.status = ? ORDER BY r.timestamp DESC LIMIT ?',
       ['published', parseInt(limit)]
@@ -997,6 +1146,20 @@ app.get('/api/feed', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const httpServer = app.listen(port, () => {
   console.log(`Kadrio server listening on http://localhost:${port}`);
 });
+
+function shutdown(signal) {
+  console.log(`${signal} received, shutting down.`);
+  httpServer.close(() => db.close((error) => {
+    if (error) {
+      console.error('Database close failed:', error.message);
+      process.exitCode = 1;
+    }
+    process.exit();
+  }));
+}
+
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
