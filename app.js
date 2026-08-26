@@ -743,6 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const payload = {
         company: pkgForm.company.value,
+        contactEmail: pkgForm.contactEmail.value,
         budget: pkgForm.budget.value,
         campaignType: pkgForm.campaignType.value,
         campaignGoal: pkgForm.campaignGoal.value,

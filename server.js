@@ -252,11 +252,17 @@ async function initDatabase() {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT,
     company TEXT,
+    contactEmail TEXT,
     budget TEXT,
     campaignType TEXT,
     campaignGoal TEXT,
     status TEXT
   )`);
+  try {
+    await runDb('ALTER TABLE packages ADD COLUMN contactEmail TEXT');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) throw error;
+  }
 
   await runDb(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -546,23 +552,26 @@ app.post('/api/creator', async (req, res) => {
 
 app.post('/api/package-request', async (req, res) => {
   const company = String(req.body.company || '').trim().slice(0, 160);
+  const contactEmail = String(req.body.contactEmail || '').trim().toLowerCase().slice(0, 160);
   const budget = String(req.body.budget || '').trim().slice(0, 40);
   const campaignType = String(req.body.campaignType || '').trim().slice(0, 80);
   const campaignGoal = String(req.body.campaignGoal || '').trim().slice(0, 1000);
-  if (!company || !budget || !campaignType || !campaignGoal) return res.status(400).json({ error: 'paket talebi alanları gerekli' });
+  if (!company || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) || !budget || !campaignType || !campaignGoal) return res.status(400).json({ error: 'firma, geçerli iletişim emaili, bütçe ve kampanya alanları gerekli' });
   const request = {
     timestamp: new Date().toISOString(),
     status: 'pending',
     company,
+    contactEmail,
     budget,
     campaignType,
     campaignGoal
   };
 
   try {
-    await runDb('INSERT INTO packages (timestamp, company, budget, campaignType, campaignGoal, status) VALUES (?, ?, ?, ?, ?, ?)', [
+    await runDb('INSERT INTO packages (timestamp, company, contactEmail, budget, campaignType, campaignGoal, status) VALUES (?, ?, ?, ?, ?, ?, ?)', [
       request.timestamp,
       request.company || '',
+      request.contactEmail || '',
       request.budget || '',
       request.campaignType || '',
       request.campaignGoal || '',
