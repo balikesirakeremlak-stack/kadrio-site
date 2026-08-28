@@ -172,7 +172,25 @@ async function renderFeed() {
     const { reels } = await fetchJson('/api/feed?limit=50');
     
     if (!reels || reels.length === 0) {
-      pageBody.innerHTML = '<section class="feed"><div class="empty-state"><strong>Henüz reel yok. İlk reeli sen yükle!</strong><button class="submit-button invite-button" type="button">Arkadaşını Davet Et</button></div></section>';
+      pageBody.innerHTML = `<section class="feed empty-feed">
+        <article class="empty-reel-card">
+          <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted autoplay loop playsinline preload="metadata"></video>
+          <div class="empty-reel-shade"></div>
+          <div class="empty-reel-copy">
+            <span class="preview-label">KADRİO ÖNİZLEME</span>
+            <h2>İlk keşfini sen başlat.</h2>
+            <p>Akışa katıl, reel'ini paylaş ve Kadrio'nun ilk creator topluluğunda yerini al.</p>
+            <div class="empty-reel-actions">
+              <button class="primary-button empty-start-button" type="button">Reel yükle</button>
+              <button class="secondary-button invite-button" type="button">Davet et</button>
+            </div>
+          </div>
+        </article>
+      </section>`;
+      document.querySelector('.empty-start-button')?.addEventListener('click', () => {
+        if (isLoggedIn()) openModal('reel-upload-modal');
+        else openModal('login-modal');
+      });
       document.querySelector('.invite-button')?.addEventListener('click', async () => {
         const inviteUrl = window.location.href;
         try {
