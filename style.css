@@ -1025,9 +1025,13 @@ select:focus-visible {
   }
 
   .comments-panel {
-    display: grid;
+    display: none;
     gap: 10px;
     padding: 0 12px 12px;
+  }
+
+  .comments-panel.is-open {
+    display: grid;
   }
 
   .comments-list {

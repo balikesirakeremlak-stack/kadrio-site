@@ -933,7 +933,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.error(e); }
           });
         }
-        commentForm.style.display = commentForm.style.display === 'none' ? 'flex' : 'none';
+        const commentsPanel = card.querySelector('.comments-panel');
+        commentsPanel?.classList.toggle('is-open');
+        commentForm.style.display = commentsPanel?.classList.contains('is-open') ? 'flex' : 'none';
       });
     });
 
