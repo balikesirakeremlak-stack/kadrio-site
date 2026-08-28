@@ -1,11 +1,48 @@
 // === KADRIO APP.JS ===
 const pageBody = document.getElementById('page-body');
 const navButtons = document.querySelectorAll('.bottom-nav .nav-item');
-const heroPrimary = document.querySelector('.primary-button');
-const heroSecondary = document.querySelector('.secondary-button');
+const heroPrimary = document.getElementById('hero-primary-button');
+const heroSecondary = document.getElementById('hero-secondary-button');
+const heroCheckoutButton = document.getElementById('hero-checkout-button');
+const promoBuyButton = document.getElementById('promo-buy-button');
 const loginButton = document.querySelector('.text-button');
 
 const API_BASE = '';
+
+async function goToCheckout() {
+  try {
+    const status = await fetchJson('/api/status');
+    const checkoutUrl = status.product?.checkoutUrl || status.paymentLinkUrl;
+    if (checkoutUrl) {
+      window.location.assign(checkoutUrl);
+      return true;
+    }
+    if (isLoggedIn()) {
+      openModal('package-modal');
+    } else {
+      openModal('login-modal');
+    }
+    return false;
+  } catch (error) {
+    console.warn('Ödeme bağlantısı kontrol edilemedi:', error);
+    if (isLoggedIn()) {
+      openModal('package-modal');
+    } else {
+      openModal('login-modal');
+    }
+    return false;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[character]));
+}
 
 // === AUTH FUNCTIONS ===
 function getStoredUser() {
@@ -135,17 +172,31 @@ async function renderFeed() {
     const { reels } = await fetchJson('/api/feed?limit=50');
     
     if (!reels || reels.length === 0) {
-      pageBody.innerHTML = '<section class="feed"><div class="empty-state">Henüz reel yok. İlk reeli sen yükle!</div></section>';
+      pageBody.innerHTML = '<section class="feed"><div class="empty-state"><strong>Henüz reel yok. İlk reeli sen yükle!</strong><button class="submit-button invite-button" type="button">Arkadaşını Davet Et</button></div></section>';
+      document.querySelector('.invite-button')?.addEventListener('click', async () => {
+        const inviteUrl = window.location.href;
+        try {
+          if (navigator.share) {
+            await navigator.share({ title: 'Kadrio beta', text: 'Kadrio’da kısa videoları keşfet:', url: inviteUrl });
+          } else {
+            await navigator.clipboard.writeText(inviteUrl);
+            alert('Davet bağlantısı kopyalandı.');
+          }
+          trackEvent('invite.share');
+        } catch (error) {
+          if (error.name !== 'AbortError') console.error(error);
+        }
+      });
       return;
     }
 
     pageBody.innerHTML = `<section class="feed">${reels.map(reel => `
-      <div class="reel-card" data-reel-id="${reel.id}">
+      <div class="reel-card" data-reel-id="${reel.id}" data-boost-request-id="${reel.boostRequestId || ''}">
         <div class="reel-header">
           <div class="reel-user">
             <div class="avatar">${(reel.username || 'U').charAt(0).toUpperCase()}</div>
             <div>
-              <strong>${reel.username || 'Anonim'}</strong>
+              <strong>${escapeHtml(reel.username || 'Anonim')}</strong>
               <small>${new Date(reel.timestamp).toLocaleString('tr-TR')}</small>
             </div>
           </div>
@@ -153,13 +204,13 @@ async function renderFeed() {
         </div>
         
         <div class="reel-video">
-          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" controls></video>
+          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted autoplay loop playsinline preload="metadata" controls></video>
         </div>
         
         <div class="reel-content">
-          <h3>${reel.title}</h3>
-          <p>${reel.description || ''}</p>
-          ${reel.tags ? `<div class="tags">${reel.tags.split(',').map(tag => `<span class="tag">${tag}</span>`).join('')}</div>` : ''}
+          <h3>${escapeHtml(reel.title)}</h3>
+          <p>${escapeHtml(reel.description || '')}</p>
+          ${reel.tags ? `<div class="tags">${reel.tags.split(',').map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}</div>` : ''}
         </div>
         
         <div class="reel-actions">
@@ -169,16 +220,16 @@ async function renderFeed() {
           </button>
           <button class="action-btn comment-btn" data-reel-id="${reel.id}">
             <span class="icon">💬</span>
-            <span class="count">0</span>
+            <span class="count">${reel.comments || 0}</span>
           </button>
-          <button class="action-btn share-btn" data-reel-id="${reel.id}" data-reel-title="${reel.title}">
+          <button class="action-btn share-btn" data-reel-id="${reel.id}" data-reel-title="${escapeHtml(reel.title)}">
             <span class="icon">📤</span>
-            <span class="count">0</span>
+            <span class="count">${reel.shares || 0}</span>
           </button>
           <button class="action-btn save-btn">
             <span class="icon">🔖</span>
           </button>
-          <button class="action-btn report-btn" data-reel-id="${reel.id}">⚑ Bildir</button>
+          <button class="action-btn report-btn" data-reel-id="${reel.id}">Bildir</button>
         </div>
         <div class="comments-panel" data-comments-for="${reel.id}">
           <div class="comments-list"><span class="muted">Yorumlar yükleniyor...</span></div>
@@ -189,6 +240,39 @@ async function renderFeed() {
         </div>
       </div>
     `).join('')}</section>`;
+
+    document.querySelectorAll('.reel-video video').forEach((video) => {
+      video.addEventListener('error', () => {
+        video.classList.add('video-unavailable');
+        const notice = document.createElement('span');
+        notice.className = 'video-unavailable-notice';
+        notice.textContent = 'Video şu anda kullanılamıyor';
+        video.parentElement.appendChild(notice);
+      }, { once: true });
+    });
+
+    const videoObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.play().catch(() => {});
+        else entry.target.pause();
+      });
+    }, { threshold: 0.65 });
+    document.querySelectorAll('.reel-video video').forEach((video) => videoObserver.observe(video));
+
+    document.querySelectorAll('.reel-card[data-boost-request-id]').forEach((card) => {
+      card.addEventListener('click', async (event) => {
+        if (event.target.closest('button, video, input, textarea')) return;
+        const requestId = card.dataset.boostRequestId;
+        const storageKey = `kadrio-boost-click-${requestId}`;
+        if (sessionStorage.getItem(storageKey)) return;
+        sessionStorage.setItem(storageKey, '1');
+        await fetchJson('/api/boost-click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId })
+        }).catch(() => sessionStorage.removeItem(storageKey));
+      });
+    });
 
     // Like handlers
     document.querySelectorAll('.like-btn').forEach((btn) => {
@@ -247,7 +331,7 @@ async function renderFeed() {
         const comments = reel.comments || [];
         const list = panel.querySelector('.comments-list');
         list.innerHTML = comments.length
-          ? comments.map((item) => `<div class="comment-item"><strong>${item.username || `Kullanıcı ${item.userId}`}</strong><span>${item.comment}</span></div>`).join('')
+          ? comments.map((item) => `<div class="comment-item"><strong>${escapeHtml(item.username || `Kullanıcı ${item.userId}`)}</strong><span>${escapeHtml(item.comment)}</span></div>`).join('')
           : '<span class="muted">Henüz yorum yok.</span>';
         panel.closest('.reel-card').querySelector('.comment-btn .count').textContent = comments.length;
       } catch (error) {
@@ -273,7 +357,7 @@ async function renderFeed() {
           input.value = '';
           const list = panel.querySelector('.comments-list');
           if (list.querySelector('.muted')) list.innerHTML = '';
-          list.insertAdjacentHTML('afterbegin', `<div class="comment-item"><strong>${user.username}</strong><span>${comment}</span></div>`);
+          list.insertAdjacentHTML('afterbegin', `<div class="comment-item"><strong>${escapeHtml(user.username)}</strong><span>${escapeHtml(comment)}</span></div>`);
           const count = panel.closest('.reel-card').querySelector('.comment-btn .count');
           count.textContent = parseInt(count.textContent || '0', 10) + 1;
         } catch (error) {
@@ -337,7 +421,7 @@ async function renderCreatorPage() {
         <div class="form-card" style="padding:28px;">
           <p class="eyebrow" style="margin:0 0 8px;">ÜRETİM PANELİ</p>
           <h2 style="margin:0 0 12px;">Giriş yaparak reel yüklemeye başla</h2>
-          <p style="margin:0 0 18px; color:#c9d1dc;">İçerik üretmek için hesabına giriş yap veya sponsor paketleri için teklif talebinde bulun.</p>
+          <p style="margin:0 0 18px; color:#c9d1dc;">İçerik üretmek için hesabına giriş yap veya işletmen için reklam talebi oluştur.</p>
           <div class="hero-actions" style="justify-content:flex-start;">
             <button class="submit-button" id="goto-login-btn">Giriş Yap</button>
             <button class="secondary-button" id="creator-package-btn">Üretici Paketleri</button>
@@ -523,6 +607,10 @@ async function renderAdminPage() {
         <ul id="admin-packages" class="admin-list"></ul>
       </div>
       <div class="admin-list-wrap">
+        <h3>Öne Çıkarma Talepleri</h3>
+        <ul id="admin-boost-requests" class="admin-list"></ul>
+      </div>
+      <div class="admin-list-wrap">
         <h3>İçerik Raporları</h3>
         <ul id="admin-reports" class="admin-list"></ul>
       </div>
@@ -545,16 +633,18 @@ async function renderAdminPage() {
       `;
       document.getElementById('admin-creators').innerHTML = '<li>Admin erişimi için token girin.</li>';
       document.getElementById('admin-packages').innerHTML = '<li>Admin erişimi için token girin.</li>';
+      document.getElementById('admin-boost-requests').innerHTML = '<li>Admin erişimi için token girin.</li>';
       document.getElementById('admin-reports').innerHTML = '<li>Admin erişimi için token girin.</li>';
       return;
     }
     
     try {
-      const [status, moderation, creators, packages, reports] = await Promise.all([
+      const [status, moderation, creators, packages, boostRequests, reports] = await Promise.all([
         fetchJson('/api/status'),
         fetchJson('/admin/reels?status=pending', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/creators', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/packages', { headers: { 'x-admin-token': activeToken } }),
+        fetchJson('/admin/boost-requests', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/reports', { headers: { 'x-admin-token': activeToken } })
       ]);
 
@@ -583,6 +673,15 @@ async function renderAdminPage() {
       document.getElementById('admin-packages').innerHTML = pkgRows.length
         ? pkgRows.map(p => `<li><strong>${p.company}</strong><small>${p.status}</small></li>`).join('')
         : '<li>Veri yok</li>';
+
+      const boostRows = boostRequests.boostRequests || [];
+      document.getElementById('admin-boost-requests').innerHTML = boostRows.length
+        ? boostRows.map(b => `<li class="report-row"><strong>${b.username} · Reel #${b.reelId}</strong><small>${b.reelTitle} · ${b.packageName} · ${b.amount} TL · ${b.clickCount || 0}/${b.targetClicks || 100} tıklama · ${b.status}</small><button class="boost-status-btn" data-request-id="${b.id}" data-status="active">Aktifleştir</button><button class="boost-status-btn" data-request-id="${b.id}" data-status="rejected">Reddet</button></li>`).join('')
+        : '<li>Bekleyen öne çıkarma talebi yok</li>';
+      document.querySelectorAll('.boost-status-btn').forEach((button) => button.addEventListener('click', async () => {
+        await fetchJson(`/admin/boost-request/${button.dataset.requestId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-token': activeToken }, body: JSON.stringify({ status: button.dataset.status }) });
+        loadData();
+      }));
 
       const reportRows = reports.reports || [];
       document.getElementById('admin-reports').innerHTML = reportRows.length
@@ -654,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => changePage(btn.dataset.page));
   });
 
-  heroPrimary.addEventListener('click', () => {
+  heroPrimary?.addEventListener('click', () => {
     if (isLoggedIn()) {
       openModal('reel-upload-modal');
     } else {
@@ -662,7 +761,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  heroSecondary.addEventListener('click', () => openModal('package-modal'));
+  heroSecondary?.addEventListener('click', () => openModal('package-modal'));
+  heroCheckoutButton?.addEventListener('click', goToCheckout);
+  promoBuyButton?.addEventListener('click', goToCheckout);
 
   const loginBtn = document.querySelector('.text-button');
   loginBtn.addEventListener('click', (e) => {
@@ -727,6 +828,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const tagsStr = reelForm.querySelector('#reel-tags').value.trim();
       const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
       const videoFile = reelForm.querySelector('#reel-video')?.files[0];
+      if (!videoFile) {
+        alert('Lütfen bir video dosyası seçin.');
+        return;
+      }
       if (videoFile && videoFile.size > 100 * 1024 * 1024) {
         alert('Video dosyası 100 MB sınırını aşamaz.');
         return;
@@ -743,12 +848,12 @@ document.addEventListener('DOMContentLoaded', () => {
           method: 'POST',
           body
         });
-        alert('Reel yayınlandı!');
+        alert('Reel incelemeye gönderildi. Onaydan sonra akışta görünecek.');
         reelForm.reset();
         closeModal('reel-upload-modal');
         renderFeed();
       } catch (error) {
-        alert(error.message || 'Yükleme başarısız');
+        alert(error.message || 'Video yüklenemedi. Dosya boyutunu ve video formatını kontrol edin.');
       }
     });
   }
@@ -762,6 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
         company: pkgForm.company.value,
         contactEmail: pkgForm.contactEmail.value,
         budget: pkgForm.budget.value,
+        targetUrl: pkgForm.targetUrl.value,
         campaignType: pkgForm.campaignType.value,
         campaignGoal: pkgForm.campaignGoal.value,
       };
@@ -776,6 +882,14 @@ document.addEventListener('DOMContentLoaded', () => {
         pkgForm.reset();
         closeModal('package-modal');
         trackEvent('package.request', { campaignType: payload.campaignType });
+        try {
+          const status = await fetchJson('/api/status');
+          if (status.paymentLinkConfigured && status.paymentLinkUrl) {
+            window.location.assign(status.paymentLinkUrl);
+          }
+        } catch (statusError) {
+          console.warn('Ödeme bağlantısı kontrol edilemedi:', statusError);
+        }
       } catch (error) {
         alert('Talep gönderilemedi');
       }

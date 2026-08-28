@@ -30,13 +30,24 @@
       <section class="hero-panel" id="hero-section">
         <div class="hero-copy">
           <p class="eyebrow">CREATOR NETWORK</p>
-          <h1>İzle. Üret. Etki yarat.</h1>
-          <p>Kadrio, kısa videoları keşfetmek, üreticileri takip etmek ve içerikten değer üretmek için tasarlanmış yeni nesil video ağıdır.</p>
+          <h1>Kısa videoların yeni keşif alanı.</h1>
+          <p>Kadrio’da içerikleri keşfet, üreticileri takip et ve markanı doğru kitleyle buluştur.</p>
           <div class="hero-actions">
-            <button class="primary-button">Hemen Başla</button>
-            <button class="secondary-button">Üretici Paketleri</button>
+            <button class="primary-button" id="hero-primary-button">Hemen Başla</button>
+            <button class="secondary-button" id="hero-secondary-button">Reklam Ver</button>
+            <button class="primary-button" id="hero-checkout-button" style="margin-top:0;">Tek Ürün Satın Al</button>
           </div>
         </div>
+        <aside class="hero-sponsor-card" aria-label="Kadrio tanıtım paketi">
+          <span class="sponsor-label">KADRİO PROMO</span>
+          <div class="sponsor-copy">
+            <strong>İçeriğini doğru kişilere ulaştır.</strong>
+            <span>Tek ürün</span>
+          </div>
+          <p class="sponsor-price">Kadrio Tek Ürün · 99 TL</p>
+          <small>Ödeme bağlantısı aktifse doğrudan ödeme sayfasına yönlendirilirsiniz.</small>
+          <button class="submit-button" id="promo-buy-button" type="button" style="margin-top:12px; width:100%;">Ödemeye Git</button>
+        </aside>
       </section>
 
       <section id="page-body" class="page-content">
@@ -93,7 +104,7 @@
   <div id="package-modal" class="modal hidden" aria-hidden="true">
     <div class="modal-dialog">
       <button class="close-modal" aria-label="Kapat">✕</button>
-      <h3>Sponsor Paketi</h3>
+      <h3>Reklam Talebi</h3>
       <form id="package-form" class="form-grid">
         <div class="input-group">
           <label for="company">Firma Adı</label>
@@ -106,6 +117,10 @@
         <div class="input-group">
           <label for="budget">Bütçe (TL)</label>
           <input id="budget" name="budget" type="text" placeholder="5000" required />
+        </div>
+        <div class="input-group">
+          <label for="target-url">Hedef bağlantı</label>
+          <input id="target-url" name="targetUrl" type="url" placeholder="https://markaniz.com" required />
         </div>
         <div class="input-group">
           <label for="campaign-type">Kampanya Türü</label>
@@ -145,7 +160,7 @@
         </div>
         <div class="input-group">
           <label for="reel-video">Video dosyası</label>
-          <input id="reel-video" name="video" type="file" accept="video/*" />
+          <input id="reel-video" name="video" type="file" accept="video/*" required />
         </div>
         <button type="submit" class="submit-button">Yayınla</button>
       </form>

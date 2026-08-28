@@ -17,3 +17,8 @@ database/*.db
 database.legacy
 uploads/*
 !uploads/.gitkeep
+
+# Environment files
+.env
+.env.*
+!.env.example
