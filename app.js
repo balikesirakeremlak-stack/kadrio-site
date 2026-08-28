@@ -227,7 +227,7 @@ async function renderFeed() {
         </div>
         
         <div class="reel-video">
-          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted autoplay loop playsinline preload="metadata" controls></video>
+          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted autoplay loop playsinline preload="metadata"></video>
         </div>
         
         <div class="reel-content">
@@ -265,6 +265,10 @@ async function renderFeed() {
     `).join('')}</section>`;
 
     document.querySelectorAll('.reel-video video').forEach((video) => {
+      video.addEventListener('click', () => {
+        if (video.paused) video.play().catch(() => {});
+        else video.pause();
+      });
       video.addEventListener('error', () => {
         video.classList.add('video-unavailable');
         const notice = document.createElement('span');

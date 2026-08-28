@@ -1332,6 +1332,21 @@ body.feed-mode .content {
   gap: 0;
 }
 
+body.feed-mode .top-bar {
+  background: linear-gradient(180deg, rgba(9, 13, 16, 0.86), rgba(9, 13, 16, 0));
+  border-bottom-color: transparent;
+}
+
+body.feed-mode .brand-tag {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+body.feed-mode .top-actions .icon-button,
+body.feed-mode .top-actions .text-button {
+  background: rgba(9, 13, 16, 0.4);
+  backdrop-filter: blur(12px);
+}
+
 body.feed-mode .hero-panel {
   display: none;
 }
@@ -1453,6 +1468,7 @@ body.feed-mode .reel-card .reel-video video {
   max-height: none;
   aspect-ratio: auto;
   object-fit: cover;
+  cursor: pointer;
 }
 
 body.feed-mode .reel-card .reel-video::after {
