@@ -18,6 +18,21 @@ if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must 
 if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
 if (isProduction && process.env.ADMIN_TOKEN === process.env.SESSION_SECRET) throw new Error('ADMIN_TOKEN and SESSION_SECRET must be different in production.');
 const sessionSecret = process.env.SESSION_SECRET || process.env.ADMIN_TOKEN || 'local-development-session-secret';
+const defaultPaymentLinkUrl = 'https://www.shopier.com/kadrio/50337921';
+const paymentLinkUrl = typeof process.env.PAYMENT_LINK_URL === 'string' && /^https:\/\//i.test(process.env.PAYMENT_LINK_URL)
+  ? process.env.PAYMENT_LINK_URL.trim()
+  : defaultPaymentLinkUrl;
+const singleProductName = (process.env.SINGLE_PRODUCT_NAME || process.env.PRODUCT_NAME || 'Kadrio Tek Ürün').trim();
+const singleProductPrice = Number(process.env.SINGLE_PRODUCT_PRICE || 99) || 99;
+const singleProductUrl = typeof process.env.SINGLE_PRODUCT_URL === 'string' && /^https?:\/\//i.test(process.env.SINGLE_PRODUCT_URL)
+  ? process.env.SINGLE_PRODUCT_URL.trim()
+  : paymentLinkUrl;
+const checkoutProduct = {
+  name: singleProductName,
+  price: singleProductPrice,
+  checkoutUrl: singleProductUrl,
+  configured: Boolean(singleProductUrl)
+};
 
 const corsOrigin = process.env.CORS_ORIGIN || (isProduction ? false : true);
 app.set('trust proxy', 1);
@@ -893,7 +908,11 @@ app.get('/api/status', (req, res) => {
     analyticsCount: analytics.length,
     creatorsCount: creators.length,
     packageRequests: packages.length,
-    adminConfigured: Boolean(effectiveAdminToken)
+    adminConfigured: Boolean(effectiveAdminToken),
+    paymentConfigured: false,
+    paymentLinkConfigured: checkoutProduct.configured,
+    paymentLinkUrl: checkoutProduct.checkoutUrl,
+    product: checkoutProduct
   });
 });
 

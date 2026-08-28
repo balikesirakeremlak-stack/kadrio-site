@@ -14,3 +14,9 @@ services:
         generateValue: true
       - key: SESSION_SECRET
         generateValue: true
+      - key: SINGLE_PRODUCT_NAME
+        value: Kadrio Tek Ürün
+      - key: SINGLE_PRODUCT_PRICE
+        value: "99"
+      - key: PAYMENT_LINK_URL
+        value: https://www.shopier.com/kadrio/50337921
