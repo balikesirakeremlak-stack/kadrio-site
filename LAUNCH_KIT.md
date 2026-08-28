@@ -45,6 +45,13 @@ https://www.shopier.com/kadrio/50337921
 4. Ilk kullanicilardan tek bir geri bildirim isteyin: "Ilk bakista neyi gelistirmeliyiz?"
 5. Her kanalda farkli UTM linki kullanarak hangi kaynaktan ziyaret geldigini takip edin.
 
+## Olculebilir linkler
+
+- Instagram: https://web-production-8f78b.up.railway.app/?utm_source=instagram&utm_medium=social&utm_campaign=beta-launch
+- TikTok: https://web-production-8f78b.up.railway.app/?utm_source=tiktok&utm_medium=social&utm_campaign=beta-launch
+- WhatsApp: https://web-production-8f78b.up.railway.app/?utm_source=whatsapp&utm_medium=direct&utm_campaign=beta-launch
+- Creator toplulugu: https://web-production-8f78b.up.railway.app/?utm_source=creator-community&utm_medium=community&utm_campaign=beta-launch
+
 ## Ilk hedef
 
 Ilk hafta hedefi viral gorunmek degil, 10 gercek kullanicidan geri bildirim almak:

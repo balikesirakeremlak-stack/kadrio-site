@@ -737,6 +737,19 @@ function changePage(pageKey) {
 
 // === EVENT LISTENERS ===
 document.addEventListener('DOMContentLoaded', () => {
+  const queryParams = new URLSearchParams(window.location.search);
+  const source = queryParams.get('utm_source');
+  const campaign = queryParams.get('utm_campaign');
+  const attributionKey = `kadrio-attribution-${source || 'direct'}-${campaign || 'none'}`;
+  if (!sessionStorage.getItem(attributionKey)) {
+    sessionStorage.setItem(attributionKey, '1');
+    trackEvent('visit.attribution', {
+      source: source || 'direct',
+      medium: queryParams.get('utm_medium') || 'none',
+      campaign: campaign || 'none',
+      reelId: queryParams.get('reel') || null,
+    });
+  }
   restoreSession().finally(() => {
     updateAuthUi();
     document.body.classList.add('feed-mode');
