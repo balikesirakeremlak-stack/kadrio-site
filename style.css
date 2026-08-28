@@ -1332,6 +1332,14 @@ body.feed-mode .content {
   gap: 0;
 }
 
+body.feed-mode .hero-panel {
+  display: none;
+}
+
+body.empty-mode .hero-panel {
+  display: none;
+}
+
 body.feed-mode .empty-feed {
   height: 100vh;
   min-height: 560px;

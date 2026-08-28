@@ -170,6 +170,9 @@ async function renderFeed() {
   
   try {
     const { reels } = await fetchJson('/api/feed?limit=50');
+    const hasReels = Boolean(reels && reels.length);
+    document.body.classList.toggle('feed-mode', hasReels);
+    document.body.classList.toggle('empty-mode', !hasReels);
     
     if (!reels || reels.length === 0) {
       pageBody.innerHTML = `<section class="feed empty-feed">
@@ -183,6 +186,7 @@ async function renderFeed() {
             <div class="empty-reel-actions">
               <button class="primary-button empty-start-button" type="button">Reel yükle</button>
               <button class="secondary-button invite-button" type="button">Davet et</button>
+              <button class="secondary-button empty-promo-button" type="button">Tanıtım paketi</button>
             </div>
           </div>
         </article>
@@ -191,6 +195,7 @@ async function renderFeed() {
         if (isLoggedIn()) openModal('reel-upload-modal');
         else openModal('login-modal');
       });
+      document.querySelector('.empty-promo-button')?.addEventListener('click', goToCheckout);
       document.querySelector('.invite-button')?.addEventListener('click', async () => {
         const inviteUrl = window.location.href;
         try {
@@ -770,7 +775,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   restoreSession().finally(() => {
     updateAuthUi();
-    document.body.classList.add('feed-mode');
     renderFeed();
   });
   document.getElementById('notifications-button')?.addEventListener('click', renderNotifications);
