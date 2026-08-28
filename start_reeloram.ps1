@@ -8,7 +8,11 @@ New-Item -ItemType Directory -Force -Path ".\database", ".\uploads" | Out-Null
 
 $env:PORT = "3000"
 $env:NODE_ENV = "development"
-if (-not $env:ADMIN_TOKEN) { $env:ADMIN_TOKEN = "local-kadrio-admin-token" }
+if (-not $env:ADMIN_TOKEN) {
+	$randomBytes = New-Object byte[] 32
+	[Security.Cryptography.RandomNumberGenerator]::Fill($randomBytes)
+	$env:ADMIN_TOKEN = [Convert]::ToBase64String($randomBytes)
+}
 
 # Replace any stale Kadrio process with the current server
 Write-Output "Starting PM2 process kadrio..."
