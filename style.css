@@ -1,4 +1,6 @@
-﻿* {
+﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+* {
   box-sizing: border-box;
 }
 
@@ -20,7 +22,7 @@ body {
   min-height: 100%;
   background: linear-gradient(180deg, #0b0e12 0%, #10171b 52%, #0b0e12 100%);
   color: var(--text);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "DM Sans", sans-serif;
 }
 
 body {
@@ -88,7 +90,8 @@ select:focus-visible {
 }
 
 .brand {
-  font-size: 1.05rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.08rem;
   font-weight: 900;
   letter-spacing: 0.22em;
   color: #ffffff;
@@ -187,6 +190,7 @@ select:focus-visible {
 }
 
 .hero-panel h1 {
+  font-family: "Space Grotesk", sans-serif;
   margin: 0;
   font-size: clamp(2.2rem, 3.8vw, 3.5rem);
   line-height: 1.02;
@@ -196,6 +200,14 @@ select:focus-visible {
 .hero-panel h1 em {
   color: var(--accent);
   font-style: normal;
+}
+
+.hero-actions button,
+.empty-reel-actions button,
+.submit-button,
+.secondary-button {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
 }
 
 .hero-panel p {
