@@ -1271,10 +1271,6 @@ select:focus-visible {
   cursor: pointer;
 }
 
-body.feed-mode .hero-panel {
-  display: none;
-}
-
 body.feed-mode .content {
   margin-top: 0;
   padding: 0;
