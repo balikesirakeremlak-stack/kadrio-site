@@ -38,7 +38,11 @@ const corsOrigin = process.env.CORS_ORIGIN || (isProduction ? false : true);
 app.set('trust proxy', 1);
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname), {
+  setHeaders: (res, filePath) => {
+    if (path.basename(filePath) === 'index.html') res.setHeader('Cache-Control', 'no-store');
+  }
+}));
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
