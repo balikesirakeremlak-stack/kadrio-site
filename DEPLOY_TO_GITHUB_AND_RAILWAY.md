@@ -22,6 +22,9 @@ gh repo create YOUR_USERNAME/REPO --public --source=. --remote=origin --push
 - Environment variables olarak ekleyin:
   - `ADMIN_TOKEN` (mevcut admin token)
   - `PORT` = `3000` (veya Railway otomatik port)
+  - `SINGLE_PRODUCT_NAME` = `Kadrio Tek Ürün`
+  - `SINGLE_PRODUCT_PRICE` = `99`
+  - `PAYMENT_LINK_URL` = `https://www.shopier.com/kadrio/50337921`
   - Diğer gerekli anahtarlar (STRIPE_SECRET_KEY vs.)
 - Deploy başlatın.
 
