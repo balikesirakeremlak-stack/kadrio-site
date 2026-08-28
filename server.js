@@ -95,10 +95,10 @@ app.use(['/api/track', '/api/creator', '/api/package-request'], (req, res, next)
 });
 
 const accessLogPath = path.join(__dirname, 'access.log');
-const dbPath = path.join(__dirname, 'database', 'reeloram.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'database', 'reeloram.db');
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 app.use('/uploads', express.static(uploadDir, { maxAge: '1d' }));
 
