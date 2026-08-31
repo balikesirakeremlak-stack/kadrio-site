@@ -1,10 +1,10 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
-# install only prod dependencies
+# Install exactly the locked production dependency tree.
 COPY package.json package-lock.json* ./
-RUN npm install --production
+RUN npm ci --omit=dev
 
 # copy app
 COPY . .

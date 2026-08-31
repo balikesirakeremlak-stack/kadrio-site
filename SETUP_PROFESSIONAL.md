@@ -317,7 +317,7 @@ cp -r uploads uploads.backup
 ```bash
 # Keep old server running
 # Start new server on different port
-PORT=3001 node server-refactored.js
+PORT=3001 node server.js
 
 # Test endpoints
 curl http://localhost:3001/health
@@ -393,7 +393,7 @@ npm start
 
 ## 🎯 Next Steps
 
-1. ✅ Replace `server.js` with `server-refactored.js`
+1. ✅ Use `server.js` as the single production entrypoint
 2. ✅ Update deployment environment variables
 3. ✅ Test all API endpoints
 4. ✅ Set up logging aggregation (Datadog, New Relic)
