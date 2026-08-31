@@ -1505,17 +1505,23 @@ body.feed-mode .page-body {
 }
 
 body.feed-mode .feed {
-  height: 100vh;
+  height: 100dvh;
   max-height: none;
   gap: 0;
   padding: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
   scroll-snap-type: y mandatory;
+}
+
+body.feed-mode .feed::-webkit-scrollbar {
+  display: none;
 }
 
 body.feed-mode .reel-card {
   position: relative;
-  height: 100vh;
+  height: 100dvh;
   min-height: 560px;
   border: 0;
   border-radius: 0;
@@ -1572,7 +1578,7 @@ body.feed-mode .reel-card .reel-video::after {
 
 body.feed-mode .reel-card .reel-content {
   position: absolute;
-  inset: auto 78px 28px 18px;
+  inset: auto 78px calc(28px + env(safe-area-inset-bottom)) 18px;
   z-index: 4;
   padding: 0;
   color: #fff;
@@ -1591,7 +1597,7 @@ body.feed-mode .reel-card .reel-content p {
 body.feed-mode .reel-card .reel-actions {
   position: absolute;
   right: 14px;
-  bottom: 105px;
+  bottom: calc(105px + env(safe-area-inset-bottom));
   z-index: 6;
   display: grid;
   gap: 12px;
