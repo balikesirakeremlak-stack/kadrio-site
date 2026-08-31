@@ -15,6 +15,7 @@ const LRUCache = require('./lib/cache');
 const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+const autoPublishReels = !['false', '0', 'off'].includes(String(process.env.AUTO_PUBLISH_REELS || 'true').trim().toLowerCase());
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must be configured in production.');
 if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
@@ -642,7 +643,7 @@ app.post('/api/package-request', async (req, res) => {
   if (!company || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail) || !budget || !campaignType || !campaignGoal) return res.status(400).json({ error: 'firma, geçerli iletişim emaili, bütçe ve kampanya alanları gerekli' });
   const request = {
     timestamp: new Date().toISOString(),
-    status: 'pending',
+    status: autoPublishReels ? 'published' : 'pending',
     company,
     contactEmail,
     budget,
