@@ -12,6 +12,7 @@ try {
 const crypto = require('crypto');
 const { promisify } = require('util');
 const LRUCache = require('./lib/cache');
+const { moderateVideo } = require('./lib/geminiModeration');
 const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
@@ -1053,6 +1054,24 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
   if (blockedTerm) {
     if (req.file) fs.unlink(req.file.path, () => {});
     return res.status(422).json({ error: 'Bu içerik güvenlik kuralları nedeniyle yayınlanamaz.' });
+  }
+
+  if (req.file && process.env.GEMINI_API_KEY) {
+    try {
+      const verdict = await moderateVideo(req.file.path, {
+        title: reel.title,
+        description: reel.description,
+        tags: reel.tags,
+        mimeType: req.file.mimetype
+      });
+      if (!verdict.safe) {
+        fs.unlink(req.file.path, () => {});
+        return res.status(422).json({ error: 'Video AI moderasyonu tarafından yayın için uygun bulunmadı.' });
+      }
+    } catch (error) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(503).json({ error: 'Video moderasyonu şu anda kullanılamıyor. Lütfen tekrar deneyin.' });
+    }
   }
 
   try {
