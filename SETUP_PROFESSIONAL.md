@@ -132,8 +132,7 @@ kadrio/
 │   ├── validator.js       # Input validation
 │   ├── errorHandler.js    # Error management
 │   └── config.js          # Environment config
-├── server-refactored.js   # Production server (NEW)
-├── server.js              # Original (legacy)
+├── server.js              # Production server
 ├── app.js                 # Frontend logic
 ├── index.html             # Main page
 ├── style.css              # Styling

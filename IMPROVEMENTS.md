@@ -531,7 +531,7 @@ NODE_ENV=staging npm start
 
 | File | Purpose |
 |------|---------|
-| `server-refactored.js` | Production server (NEW) |
+| `server.js` | Production server |
 | `lib/logger.js` | Structured logging system |
 | `lib/validator.js` | Input validation |
 | `lib/errorHandler.js` | Error management |
