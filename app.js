@@ -931,7 +931,7 @@ document.addEventListener('DOMContentLoaded', () => {
           method: 'POST',
           body
         });
-        alert('Reel otomatik moderasyondan geçti ve yayına alındı.');
+        alert('Reel otomatik kontrole gönderildi. Güvenlik doğrulaması tamamlanınca yayına alınacak.');
         reelForm.reset();
         closeModal('reel-upload-modal');
         renderFeed();

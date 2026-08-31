@@ -17,6 +17,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
 const autoPublishReels = !['false', '0', 'off'].includes(String(process.env.AUTO_PUBLISH_REELS || 'true').trim().toLowerCase());
+const requireAiModeration = !['false', '0', 'off'].includes(String(process.env.REQUIRE_AI_MODERATION || 'true').trim().toLowerCase());
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must be configured in production.');
 if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
@@ -1056,6 +1057,7 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
     return res.status(422).json({ error: 'Bu içerik güvenlik kuralları nedeniyle yayınlanamaz.' });
   }
 
+  let moderationPending = requireAiModeration && (!req.file || !process.env.GEMINI_API_KEY);
   if (req.file && process.env.GEMINI_API_KEY) {
     try {
       const verdict = await moderateVideo(req.file.path, {
@@ -1069,10 +1071,12 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
         return res.status(422).json({ error: 'Video AI moderasyonu tarafından yayın için uygun bulunmadı.' });
       }
     } catch (error) {
-      fs.unlink(req.file.path, () => {});
-      return res.status(503).json({ error: 'Video moderasyonu şu anda kullanılamıyor. Lütfen tekrar deneyin.' });
+      moderationPending = true;
+      console.error('Video moderation unavailable; keeping reel pending:', error.message);
     }
   }
+
+  reel.status = autoPublishReels && !moderationPending ? 'published' : 'pending';
 
   try {
     const result = await runDb(
@@ -1080,7 +1084,11 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
       [reel.userId, reel.title, reel.description, reel.videoUrl, reel.duration, reel.tags, reel.status, reel.timestamp]
     );
     await runDb('UPDATE users SET timestamp = ? WHERE id = ?', [reel.timestamp, userId]);
-    res.status(201).json({ success: true, reel: { id: result.id, ...reel } });
+    res.status(moderationPending ? 202 : 201).json({
+      success: true,
+      moderation: moderationPending ? 'pending' : 'approved',
+      reel: { id: result.id, ...reel }
+    });
   } catch (error) {
     if (req.file) fs.unlink(req.file.path, () => {});
     res.status(500).json({ error: 'reel upload failed' });
