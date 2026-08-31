@@ -499,7 +499,40 @@ const affiliateMap = {
   'sample-aff-2': 'https://www.example.com/?ref=sample-aff-2'
 };
 
-app.get('/api/reels', (req, res) => {
+app.get('/api/reels', async (req, res) => {
+  try {
+    const rows = await allDb(
+      `SELECT r.*, u.username, u.avatar, COUNT(DISTINCT rl.id) as likeCount
+       FROM reels r
+       JOIN users u ON u.id = r.userId
+       LEFT JOIN reel_likes rl ON rl.reelId = r.id
+       WHERE r.status = ?
+       GROUP BY r.id
+       ORDER BY r.timestamp DESC
+       LIMIT 50`,
+      ['published']
+    );
+    if (rows.length > 0) {
+      return res.json({ reels: rows.map((row) => ({
+        id: row.id,
+        user: row.username,
+        avatar: row.avatar || row.username?.charAt(0)?.toUpperCase() || 'K',
+        description: row.description || '',
+        tags: String(row.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
+        song: 'Kadrio Studio',
+        src: row.videoUrl,
+        likes: row.likeCount || 0,
+        comments: row.comments || 0,
+        shares: 0,
+        views: row.views || 0,
+        sponsored: false,
+        status: row.status
+      })) });
+    }
+  } catch (error) {
+    console.error('Failed to load published reels:', error.message);
+  }
+
   res.json({
     reels: [
       {
