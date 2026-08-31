@@ -845,6 +845,21 @@ select:focus-visible {
   min-height: 120px;
 }
 
+.form-helper,
+.form-error {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.form-helper {
+  color: rgba(244, 245, 242, 0.68);
+}
+
+.form-error {
+  color: #ffb39f;
+}
+
 .submit-button {
   margin-top: 10px;
   padding: 14px 18px;
@@ -853,6 +868,12 @@ select:focus-visible {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+}
+
+.submit-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35) brightness(0.75);
+  transform: none;
 }
 
 .no-scrollbar {
@@ -1428,10 +1449,50 @@ body.feed-mode .empty-feed {
   line-height: 1.55;
 }
 
+.launch-offer {
+  display: grid;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(232, 180, 93, 0.38);
+  border-radius: 10px;
+  background: rgba(9, 13, 16, 0.62);
+  backdrop-filter: blur(12px);
+}
+
+.launch-offer strong {
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.98rem;
+}
+
+.launch-offer span {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.84rem;
+}
+
 .empty-reel-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.trust-row span {
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.74rem;
 }
 
 @keyframes reveal-up {

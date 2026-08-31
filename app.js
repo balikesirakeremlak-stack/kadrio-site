@@ -180,13 +180,22 @@ async function renderFeed() {
           <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted autoplay loop playsinline preload="metadata"></video>
           <div class="empty-reel-shade"></div>
           <div class="empty-reel-copy">
-            <span class="preview-label">KADRİO ÖNİZLEME</span>
-            <h2>İlk keşfini sen başlat.</h2>
-            <p>Akışa katıl, reel'ini paylaş ve Kadrio'nun ilk creator topluluğunda yerini al.</p>
+            <span class="preview-label">KADRİO CANLI</span>
+            <h2>İlk tanıtımını bugün yayına hazırla.</h2>
+            <p>Kadrio, creator ve küçük işletmeler için kısa video odaklı keşif alanı. Tek ürün tanıtım paketi Shopier güvencesiyle 99 TL.</p>
+            <div class="launch-offer">
+              <strong>Kadrio Tek Ürün</strong>
+              <span>99 TL · Shopier güvenli ödeme · hızlı başlangıç</span>
+            </div>
             <div class="empty-reel-actions">
-              <button class="primary-button empty-start-button" type="button">Reel yükle</button>
+              <button class="primary-button empty-promo-button" type="button">Paketi satın al</button>
+              <button class="secondary-button empty-start-button" type="button">Reel yükle</button>
               <button class="secondary-button invite-button" type="button">Davet et</button>
-              <button class="secondary-button empty-promo-button" type="button">Tanıtım paketi</button>
+            </div>
+            <div class="trust-row">
+              <span>HTTPS aktif</span>
+              <span>Shopier ödeme</span>
+              <span>Creator beta</span>
             </div>
           </div>
         </article>
@@ -822,35 +831,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const authSubmitButton = document.getElementById('auth-submit-button');
     const authModeToggle = document.getElementById('auth-mode-toggle');
     const registerUsernameGroup = document.getElementById('register-username-group');
+    const identityLabel = document.getElementById('auth-identity-label');
+    const identityInput = loginForm.querySelector('#login-email');
     const passwordInput = loginForm.querySelector('#login-password');
+    const authHelper = document.getElementById('auth-helper');
+    const authError = document.getElementById('auth-error');
+    const setAuthError = (message = '') => {
+      if (!authError) return;
+      authError.textContent = message;
+      authError.classList.toggle('hidden', !message);
+    };
     authModeToggle?.addEventListener('click', () => {
       registerMode = !registerMode;
+      setAuthError('');
       authTitle.textContent = registerMode ? 'Hesap Oluştur' : 'Giriş Yap';
       authSubmitButton.textContent = registerMode ? 'Kayıt Ol' : 'Giriş Yap';
       authModeToggle.textContent = registerMode ? 'Giriş yap' : 'Hesap oluştur';
       registerUsernameGroup.classList.toggle('hidden', !registerMode);
+      identityLabel.textContent = registerMode ? 'E-posta' : 'E-posta veya kullanıcı adı';
+      identityInput.type = registerMode ? 'email' : 'text';
+      identityInput.autocomplete = registerMode ? 'email' : 'username';
+      identityInput.placeholder = registerMode ? 'mail@ornek.com' : 'kullanici veya mail@ornek.com';
       passwordInput.autocomplete = registerMode ? 'new-password' : 'current-password';
+      passwordInput.minLength = registerMode ? 8 : 6;
+      passwordInput.placeholder = registerMode ? 'En az 8 karakter' : 'En az 6 karakter';
+      authHelper.textContent = registerMode
+        ? 'Kullanıcı adı 3-30 karakter olmalı; küçük harf, rakam, nokta, tire veya alt çizgi kullan.'
+        : 'Giriş için kullanıcı adı veya e-posta yaz.';
     });
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const identity = loginForm.querySelector('#login-email').value.trim();
-      const username = loginForm.querySelector('#register-username').value.trim();
+      setAuthError('');
+      const identity = identityInput.value.trim();
+      const username = loginForm.querySelector('#register-username').value.trim().toLowerCase();
       const password = loginForm.querySelector('#login-password')?.value || '';
-      if (!identity || password.length < (registerMode ? 8 : 6)) { alert(registerMode ? 'Kullanıcı adı/e-posta ve en az 8 karakterli şifre gerekli' : 'Kullanıcı adı/e-posta ve en az 6 karakterli şifre gerekli'); return; }
-      if (registerMode && username.length < 3) { alert('En az 3 karakterli kullanıcı adı gerekli'); return; }
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const usernamePattern = /^[a-z0-9_.-]{3,30}$/;
+      if (!identity || password.length < (registerMode ? 8 : 6)) {
+        setAuthError(registerMode ? 'Geçerli e-posta ve en az 8 karakterli şifre gerekli.' : 'Kullanıcı adı/e-posta ve en az 6 karakterli şifre gerekli.');
+        return;
+      }
+      if (registerMode && !emailPattern.test(identity)) {
+        setAuthError('Kayıt için geçerli bir e-posta adresi yaz.');
+        return;
+      }
+      if (registerMode && !usernamePattern.test(username)) {
+        setAuthError('Kullanıcı adı 3-30 karakter olmalı; küçük harf, rakam, nokta, tire veya alt çizgi kullan.');
+        return;
+      }
       
+      authSubmitButton.disabled = true;
       try {
         const user = registerMode
           ? await registerUser(username, identity, password)
           : await loginUser(identity, password);
         alert(registerMode ? 'Hesabın oluşturuldu!' : `Hoşgeldin, ${user.username}!`);
         closeModal('login-modal');
+        loginForm.reset();
         changePage('akis');
       } catch (error) {
-        alert(error.message || (registerMode ? 'Kayıt başarısız' : 'Giriş başarısız'));
+        setAuthError(error.message || (registerMode ? 'Kayıt başarısız.' : 'Giriş başarısız.'));
+      } finally {
+        authSubmitButton.disabled = false;
       }
-      loginForm.reset();
     });
   }
 
@@ -936,6 +980,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.analytics = window.analytics || { track: function(e, p){ console.log('[analytics]', e, p); } };
+
+  if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    navigator.serviceWorker.register('/sw.js?v=20260901').catch((error) => {
+      console.warn('Service worker kaydedilemedi:', error);
+    });
+  }
 });
     // Comment handlers
     document.querySelectorAll('.comment-btn').forEach((btn) => {

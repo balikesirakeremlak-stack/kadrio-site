@@ -1,0 +1,27 @@
+{
+  "name": "Kadrio - İçerik Akış Platformu",
+  "short_name": "Kadrio",
+  "description": "Kısa video keşif alanı ve creator tanıtım platformu.",
+  "lang": "tr-TR",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0e12",
+  "theme_color": "#0b0e12",
+  "categories": ["entertainment", "social", "business"],
+  "icons": [
+    {
+      "src": "/kadrio-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/kadrio-shopier-product.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#10151f"/>
+  <rect x="70" y="70" width="1060" height="1060" rx="36" fill="#182231" stroke="#55d6be" stroke-width="4"/>
+  <circle cx="600" cy="430" r="190" fill="#55d6be"/>
+  <path d="M535 310h130c52 0 94 42 94 94s-42 94-94 94h-76l120 120H560L440 498h95v-94h-95c0-52 42-94 95-94Z" fill="#10151f"/>
+  <text x="600" y="790" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="112" font-weight="700" letter-spacing="4">KADRIO</text>
+  <text x="600" y="875" text-anchor="middle" fill="#a9b8c9" font-family="Arial, sans-serif" font-size="42">İçerik tanıtım paketi</text>
+  <text x="600" y="1000" text-anchor="middle" fill="#55d6be" font-family="Arial, sans-serif" font-size="58" font-weight="700">99 TL</text>
+</svg>

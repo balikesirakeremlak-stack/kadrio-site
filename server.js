@@ -11,8 +11,10 @@ try {
 }
 const crypto = require('crypto');
 const { promisify } = require('util');
+const LRUCache = require('./lib/cache');
 const app = express();
 const port = process.env.PORT || 3000;
+const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must be configured in production.');
 if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
@@ -34,10 +36,23 @@ const checkoutProduct = {
   configured: Boolean(singleProductUrl)
 };
 
-const corsOrigin = process.env.CORS_ORIGIN || (isProduction ? false : true);
+const configuredCorsOrigin = process.env.CORS_ORIGIN?.trim().toLowerCase();
+const corsOrigin = configuredCorsOrigin === 'false'
+  ? false
+  : configuredCorsOrigin === 'true'
+    ? true
+    : process.env.CORS_ORIGIN || (isProduction ? false : true);
 app.set('trust proxy', 1);
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
+function sendError(res, status, code, message) {
+  return res.status(status).json({
+    success: false,
+    error: { code, message },
+    timestamp: new Date().toISOString()
+  });
+}
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -51,9 +66,9 @@ app.use(express.static(path.join(__dirname), {
   }
 }));
 
-const requestWindows = new Map();
-const authWindows = new Map();
-const publicWriteWindows = new Map();
+const requestWindows = new LRUCache(5000);
+const authWindows = new LRUCache(5000);
+const publicWriteWindows = new LRUCache(5000);
 app.use('/api', (req, res, next) => {
   const now = Date.now();
   const key = req.ip || req.socket.remoteAddress || 'unknown';
@@ -64,11 +79,6 @@ app.use('/api', (req, res, next) => {
   }
   windowData.count += 1;
   if (windowData.count > 120) return res.status(429).json({ error: 'Çok fazla istek. Lütfen biraz bekleyin.' });
-  if (requestWindows.size > 10_000) {
-    for (const [storedKey, storedWindow] of requestWindows) {
-      if (now - storedWindow.startedAt >= 60_000) requestWindows.delete(storedKey);
-    }
-  }
   next();
 });
 
@@ -104,7 +114,13 @@ const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-app.use('/uploads', express.static(uploadDir, { maxAge: '1d' }));
+app.use('/uploads', express.static(uploadDir, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+  }
+}));
 
 const videoUpload = multer ? multer({
   storage: multer.diskStorage({
@@ -235,6 +251,7 @@ function createNotification(userId, actorId, type, message, reelId = null) {
 }
 
 async function initDatabase() {
+  await runDb('PRAGMA foreign_keys = ON');
   await runDb(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
@@ -372,6 +389,18 @@ async function initDatabase() {
     timestamp TEXT,
     FOREIGN KEY(reporterId) REFERENCES users(id)
   )`);
+
+  const indexes = [
+    'CREATE INDEX IF NOT EXISTS idx_reels_user_status_time ON reels(userId, status, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_reels_status_time ON reels(status, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_reel_likes_reel ON reel_likes(reelId)',
+    'CREATE INDEX IF NOT EXISTS idx_reel_comments_reel_time ON reel_comments(reelId, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(followerId)',
+    'CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(followingId)',
+    'CREATE INDEX IF NOT EXISTS idx_notifications_user_time ON notifications(userId, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_reports_status_time ON reports(status, timestamp DESC)'
+  ];
+  for (const indexSql of indexes) await runDb(indexSql);
 }
 
 initDatabase().catch((error) => console.error('DB init error:', error));
@@ -395,7 +424,9 @@ function requireAdmin(req, res, next) {
   }
 
   const token = req.get('x-admin-token') || req.query.token || req.headers['authorization'] && req.headers['authorization'].replace('Bearer ', '');
-  if (!token || token !== effectiveAdminToken) return res.status(401).json({ error: 'unauthorized' });
+  if (!token || token.length !== effectiveAdminToken.length || !crypto.timingSafeEqual(Buffer.from(token), Buffer.from(effectiveAdminToken))) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
   next();
 }
 
@@ -563,7 +594,7 @@ app.post('/api/creator', async (req, res) => {
     ]);
     creators.push(creator);
     persistState();
-    res.json({ success: true, creator });
+    res.status(201).json({ success: true, creator });
   } catch (error) {
     res.status(500).json({ error: 'creator save failed' });
   }
@@ -598,7 +629,7 @@ app.post('/api/package-request', async (req, res) => {
     ]);
     packages.push(request);
     persistState();
-    res.json({ success: true, request });
+    res.status(201).json({ success: true, request });
   } catch (error) {
     res.status(500).json({ error: 'package save failed' });
   }
@@ -611,7 +642,7 @@ app.post('/api/user/register', async (req, res) => {
   const password = String(req.body.password || '');
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password || password.length < 8) {
-    return res.status(400).json({ error: 'geçerli email ve en az 8 karakterli şifre gerekli' });
+    return sendError(res, 400, 'VALIDATION_ERROR', 'geçerli email ve en az 8 karakterli şifre gerekli');
   }
 
   const normalizedUsername = (rawUsername || email.split('@')[0] || 'creator').toLowerCase();
@@ -631,7 +662,7 @@ app.post('/api/user/register', async (req, res) => {
       'SELECT id FROM users WHERE lower(username) = lower(?) OR lower(email) = lower(?) LIMIT 1',
       [user.username, user.email]
     );
-    if (existingUsers.length) return res.status(409).json({ error: 'username or email already exists' });
+    if (existingUsers.length) return res.status(409).json({ error: 'Bu kullanıcı adı veya e-posta zaten kayıtlı.' });
     const passwordHash = await hashPassword(password);
     const result = await runDb(
       'INSERT INTO users (username, email, passwordHash, avatar, bio, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
@@ -640,9 +671,9 @@ app.post('/api/user/register', async (req, res) => {
     res.status(201).json({ success: true, token: createSessionToken(result.id), user: { id: result.id, ...user } });
   } catch (error) {
     if (error.message.includes('UNIQUE')) {
-      res.status(409).json({ error: 'username or email already exists' });
+      res.status(409).json({ error: 'Bu kullanıcı adı veya e-posta zaten kayıtlı.' });
     } else {
-      res.status(500).json({ error: 'registration failed' });
+      res.status(500).json({ error: 'Kayıt işlemi tamamlanamadı.' });
     }
   }
 });
@@ -728,16 +759,20 @@ app.post('/api/user/:userId/follow', requireUser, async (req, res) => {
     if (followerId !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
     if (!(await userExists(followerId)) || !(await userExists(followingId))) return res.status(404).json({ error: 'user not found' });
   try {
+      await runDb('BEGIN IMMEDIATE TRANSACTION');
     const existing = await allDb('SELECT id FROM follows WHERE followerId = ? AND followingId = ?', [followerId, followingId]);
     if (existing.length) {
       await runDb('DELETE FROM follows WHERE followerId = ? AND followingId = ?', [followerId, followingId]);
+        await runDb('COMMIT');
       return res.json({ success: true, following: false });
     }
-    await runDb('INSERT INTO follows (followerId, followingId, timestamp) VALUES (?, ?, ?)', [followerId, followingId, new Date().toISOString()]);
+      await runDb('INSERT OR IGNORE INTO follows (followerId, followingId, timestamp) VALUES (?, ?, ?)', [followerId, followingId, new Date().toISOString()]);
+      await runDb('COMMIT');
     const follower = await allDb('SELECT username FROM users WHERE id = ?', [followerId]);
     await createNotification(followingId, followerId, 'follow', `@${follower[0]?.username || 'Bir kullanıcı'} seni takip etmeye başladı.`);
     res.json({ success: true, following: true });
   } catch (error) {
+      await runDb('ROLLBACK').catch(() => {});
     res.status(500).json({ error: 'follow operation failed' });
   }
 });
@@ -912,6 +947,11 @@ app.get('/api/status', (req, res) => {
     analyticsCount: analytics.length,
     creatorsCount: creators.length,
     packageRequests: packages.length,
+    stats: {
+      analyticsCount: analytics.length,
+      creatorsCount: creators.length,
+      packageRequests: packages.length
+    },
     adminConfigured: Boolean(effectiveAdminToken),
     paymentConfigured: false,
     paymentLinkConfigured: checkoutProduct.configured,
@@ -1032,10 +1072,19 @@ app.delete('/api/reel/:reelId', requireUser, async (req, res) => {
   if (!userId) return res.status(400).json({ error: 'userId required' });
   if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
+    const rows = await allDb('SELECT videoUrl FROM reels WHERE id = ? AND userId = ?', [reelId, userId]);
     await runDb('DELETE FROM reel_likes WHERE reelId = ?', [reelId]);
     await runDb('DELETE FROM reel_comments WHERE reelId = ?', [reelId]);
     const result = await runDb('DELETE FROM reels WHERE id = ? AND userId = ?', [reelId, userId]);
     if (!result.changes) return res.status(404).json({ error: 'reel not found or unauthorized' });
+    if (rows[0]?.videoUrl?.startsWith('/uploads/')) {
+      const filePath = path.join(uploadDir, path.basename(rows[0].videoUrl));
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (fileError) {
+        if (fileError.code !== 'ENOENT') throw fileError;
+      }
+    }
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'reel deletion failed' });
@@ -1169,7 +1218,7 @@ app.get('/api/feed', async (req, res) => {
     const requestedLimit = Number.parseInt(req.query.limit, 10);
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
     const rows = await allDb(
-      'SELECT r.*, u.username, u.avatar, (SELECT COUNT(*) FROM reel_likes WHERE reelId = r.id) as likeCount FROM reels r JOIN users u ON r.userId = u.id WHERE r.status = ? ORDER BY r.timestamp DESC LIMIT ?',
+      'SELECT r.*, u.username, u.avatar, COUNT(DISTINCT rl.id) as likeCount FROM reels r JOIN users u ON r.userId = u.id LEFT JOIN reel_likes rl ON rl.reelId = r.id WHERE r.status = ? GROUP BY r.id ORDER BY r.timestamp DESC LIMIT ?',
       ['published', parseInt(limit)]
     );
     res.json({ reels: rows });
@@ -1181,6 +1230,8 @@ app.get('/api/feed', async (req, res) => {
 const httpServer = app.listen(port, () => {
   console.log(`Kadrio server listening on http://localhost:${port}`);
 });
+httpServer.requestTimeout = Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? requestTimeoutMs : 30_000;
+httpServer.headersTimeout = Math.min(httpServer.requestTimeout, 10_000);
 
 function shutdown(signal) {
   console.log(`${signal} received, shutting down.`);

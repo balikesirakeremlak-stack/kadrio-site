@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kadrio">
+  <rect width="512" height="512" rx="112" fill="#0b0e12"/>
+  <circle cx="256" cy="256" r="174" fill="#12171d" stroke="#e8b45d" stroke-width="18"/>
+  <path d="M202 152h60c54 0 92 33 92 82 0 31-15 56-42 70l54 56h-70l-42-45h-4v45h-48V152Zm48 45v76h12c27 0 43-14 43-38 0-24-16-38-43-38h-12Z" fill="#f4f5f2"/>
+  <path d="M155 375h202" stroke="#f07b5b" stroke-width="18" stroke-linecap="round"/>
+</svg>

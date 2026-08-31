@@ -4,19 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kadrio - İçerik Akış Platformu</title>
-  <meta name="description" content="Kadrio ile kısa videoları keşfet, üreticileri takip et ve içerikten değer üret." />
+  <meta name="description" content="Kadrio ile kısa videoları keşfet, ilk creator topluluğuna katıl ve Shopier güvencesiyle tek ürün tanıtım paketini satın al." />
   <meta name="theme-color" content="#0b0e12" />
+  <meta name="application-name" content="Kadrio" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Kadrio" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Kadrio - Creator video platform" />
-  <meta property="og:description" content="Kısa videoları keşfet, üreticileri takip et ve içerikten değer üret." />
-  <meta property="og:url" content="https://web-production-8f78b.up.railway.app/" />
-  <meta property="og:image" content="https://web-production-8f78b.up.railway.app/kadrio-shopier-product.png" />
+  <meta property="og:description" content="Kısa videoları keşfet, ilk creator topluluğuna katıl ve tanıtım paketini Shopier güvencesiyle satın al." />
+  <meta property="og:url" content="https://www.kadrio.co/" />
+  <meta property="og:image" content="https://www.kadrio.co/kadrio-shopier-product.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Kadrio - Kısa videoların yeni keşif alanı" />
-  <meta name="twitter:description" content="Kısa videoları keşfet, creator'ları takip et ve kendi reel'ini paylaş." />
-  <meta name="twitter:image" content="https://web-production-8f78b.up.railway.app/kadrio-shopier-product.png" />
-  <link rel="canonical" href="https://web-production-8f78b.up.railway.app/" />
-  <link rel="stylesheet" href="style.css?v=20260829" />
+  <meta name="twitter:description" content="Kısa videoları keşfet, creator'ları takip et ve tanıtım paketini Shopier güvencesiyle satın al." />
+  <meta name="twitter:image" content="https://www.kadrio.co/kadrio-shopier-product.png" />
+  <link rel="canonical" href="https://www.kadrio.co/" />
+  <link rel="manifest" href="manifest.webmanifest?v=20260902" />
+  <link rel="icon" href="kadrio-icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="kadrio-shopier-product.png" />
+  <link rel="stylesheet" href="style.css?v=20260902" />
 </head>
 <body>
   <div class="app-shell">
@@ -71,14 +78,16 @@
       <h3>Giriş Yap</h3>
       <form id="login-form" class="form-grid">
         <div class="input-group">
-          <label for="login-email">E-posta veya kullanıcı adı</label>
+          <label id="auth-identity-label" for="login-email">E-posta veya kullanıcı adı</label>
           <input id="login-email" type="text" autocomplete="username" placeholder="kullanici veya mail@ornek.com" required />
           <div id="register-username-group" class="hidden">
             <label for="register-username">Kullanıcı adı</label>
-            <input id="register-username" type="text" autocomplete="username" minlength="3" maxlength="30" placeholder="kullaniciadi" />
+            <input id="register-username" type="text" autocomplete="username" minlength="3" maxlength="30" pattern="[a-z0-9_.-]{3,30}" placeholder="kullaniciadi" />
           </div>
           <label for="login-password">Şifre</label>
           <input id="login-password" type="password" autocomplete="current-password" minlength="6" placeholder="En az 6 karakter" required />
+          <p id="auth-helper" class="form-helper">Giriş için kullanıcı adı veya e-posta yaz.</p>
+          <div id="auth-error" class="form-error hidden" role="alert"></div>
         </div>
         <button type="submit" class="submit-button" id="auth-submit-button">Giriş Yap</button>
         <button type="button" class="text-button auth-mode-toggle" id="auth-mode-toggle">Hesap oluştur</button>
@@ -152,6 +161,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260829"></script>
+  <script src="app.js?v=20260902"></script>
 </body>
 </html>
