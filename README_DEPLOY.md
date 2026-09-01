@@ -26,6 +26,14 @@ CI/CD (GitHub Actions):
 
 Railway production kontrol listesi:
 - `NODE_ENV=production`, güçlü bir `ADMIN_TOKEN` ve canlı adresi gösteren `CORS_ORIGIN` tanımlayın.
+
+GitHub Actions üzerinden otomatik Railway deploy için repository secrets tanımlayın:
+
+- `RAILWAY_TOKEN`
+- `RAILWAY_PROJECT_ID`
+- `RAILWAY_ENVIRONMENT_ID`
+
+Bu secret'lar tanımlandığında `main` branch'e yapılan her push test, Docker build ve Railway deploy aşamalarından geçer.
 - SQLite ve `uploads` klasörü için Railway Volume bağlayın; volume olmadan yeniden deploy sonrası yerel veriler kalıcı değildir.
 - Production ortamında `ADMIN_TOKEN` eksikse sunucu bilerek başlamaz.
 - İlk deploy sonrası `/api/status` adresinin `200` döndürdüğünü kontrol edin.
