@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const LRUCache = require('./lib/cache');
 const { moderateVideo } = require('./lib/geminiModeration');
+const appVersion = require('./package.json').version;
 const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
@@ -979,6 +980,7 @@ app.get('/health', async (req, res) => {
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'ok',
+    version: appVersion,
     uptime: process.uptime(),
     analyticsCount: analytics.length,
     creatorsCount: creators.length,
