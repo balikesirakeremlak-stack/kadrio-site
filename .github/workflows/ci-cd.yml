@@ -3,6 +3,7 @@ name: CI / Build and Publish
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -54,14 +55,25 @@ jobs:
 
   deploy-railway:
     needs: [test, build-and-publish]
-    if: ${{ github.ref == 'refs/heads/main' && secrets.RAILWAY_TOKEN != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check Railway credentials
+        id: railway_credentials
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Install Railway CLI
+        if: steps.railway_credentials.outputs.available == 'true'
         run: npm install --global @railway/cli
       - name: Deploy to Railway
+        if: steps.railway_credentials.outputs.available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
