@@ -406,14 +406,14 @@ async function renderFeed(nextMode = feedMode) {
             </div>
           </button>
           <div class="reel-header-actions">
-            ${currentUser && String(currentUser.id) !== String(reel.userId) ? `<button class="quick-follow-btn" type="button" data-user-id="${reel.userId || ''}">Takip Et</button>` : ''}
+            ${currentUser && String(currentUser.id) !== String(reel.userId) ? `<button class="quick-follow-btn${reel.isFollowing ? ' is-following' : ''}" type="button" data-user-id="${reel.userId || ''}">${reel.isFollowing ? 'Takiptesin' : 'Takip Et'}</button>` : ''}
             ${reel.demo ? '<span class="demo-badge">Örnek</span>' : ''}
             <button class="more-btn">⋮</button>
           </div>
         </div>
         
         <div class="reel-video">
-          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted autoplay loop playsinline preload="metadata"></video>
+          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted loop playsinline preload="metadata"></video>
           <button class="sound-toggle" type="button" aria-label="Sesi aç" aria-pressed="false"><span class="sound-icon" aria-hidden="true">⌁</span></button>
         </div>
         
@@ -424,7 +424,7 @@ async function renderFeed(nextMode = feedMode) {
         </div>
         
         <div class="reel-actions">
-          <button class="action-btn like-btn" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''}>
+          <button class="action-btn like-btn${reel.isLiked ? ' liked' : ''}" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''}>
             <span class="icon">${uiIcon('heart')}</span>
             <span class="count">${reel.likeCount || 0}</span>
           </button>
@@ -436,7 +436,7 @@ async function renderFeed(nextMode = feedMode) {
             <span class="icon">${uiIcon('share')}</span>
             <span class="count">${reel.shares || 0}</span>
           </button>
-          <button class="action-btn save-btn" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''} aria-label="Kaydet">
+          <button class="action-btn save-btn${reel.isSaved ? ' saved' : ''}" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''} aria-label="${reel.isSaved ? 'Kayıttan kaldır' : 'Kaydet'}">
             <span class="icon">${uiIcon('bookmark')}</span>
           </button>
           <button class="action-btn report-btn" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''} aria-label="Bildir">${uiIcon('flag')}</button>
@@ -680,6 +680,49 @@ async function renderFeed(nextMode = feedMode) {
           console.error(error);
         } finally {
           button.disabled = false;
+        }
+      });
+    });
+
+    document.querySelectorAll('.comment-btn').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const user = getStoredUser();
+        if (!user) { openModal('login-modal'); return; }
+        const card = button.closest('.reel-card');
+        const commentsPanel = card?.querySelector('.comments-panel');
+        if (!commentsPanel) return;
+        commentsPanel.classList.toggle('is-open');
+        if (!commentsPanel.classList.contains('is-open') || commentsPanel.dataset.loaded) return;
+
+        commentsPanel.dataset.loaded = 'loading';
+        try {
+          const { reel } = await fetchJson(`/api/reel/${button.dataset.reelId}`);
+          const list = commentsPanel.querySelector('.comments-list');
+          const comments = reel.comments || [];
+          list.innerHTML = comments.length
+            ? comments.map((item) => `<div class="comment-item ${item.parentId ? 'comment-reply' : ''}"><strong>${escapeHtml(item.username || `Kullanıcı ${item.userId}`)}</strong><span>${escapeHtml(item.comment)}</span>${!item.parentId ? `<button class="reply-comment-btn" type="button" data-comment-id="${item.id}" data-reel-id="${button.dataset.reelId}">Yanıtla</button>` : ''}</div>`).join('')
+            : '<span class="muted">Henüz yorum yok.</span>';
+          list.querySelectorAll('.reply-comment-btn').forEach((replyButton) => {
+            replyButton.addEventListener('click', async () => {
+              const reply = prompt('Yanıt yaz:');
+              if (!reply?.trim()) return;
+              try {
+                await fetchJson(`/api/reel/${replyButton.dataset.reelId}/comment`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: user.id, comment: reply.trim(), parentId: replyButton.dataset.commentId })
+                });
+                commentsPanel.dataset.loaded = '';
+                commentsPanel.classList.remove('is-open');
+              } catch (error) {
+                console.error(error);
+              }
+            });
+          });
+          commentsPanel.dataset.loaded = 'true';
+        } catch (error) {
+          commentsPanel.querySelector('.comments-list').innerHTML = '<span class="muted">Yorumlar yüklenemedi.</span>';
+          commentsPanel.dataset.loaded = '';
         }
       });
     });
@@ -1540,11 +1583,14 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true;
         uploadError?.classList.add('hidden');
         progress?.classList.remove('hidden');
-        await uploadReelWithProgress(body, (percent) => {
+        const uploadResult = await uploadReelWithProgress(body, (percent) => {
           if (progressBar) progressBar.style.width = `${percent}%`;
           if (progressLabel) progressLabel.textContent = `${percent}%`;
         });
-        alert('Reel başarıyla yüklendi ve akışa eklendi.');
+        const isPending = uploadResult?.moderation === 'pending' || uploadResult?.reel?.status === 'pending';
+        alert(isPending
+          ? 'Reel yüklendi ve moderasyon incelemesine alındı. Onaylandıktan sonra akışta görünecek.'
+          : 'Reel başarıyla yüklendi ve akışa eklendi.');
         reelForm.reset();
         if (videoPreview) {
           if (videoPreview.dataset.objectUrl) URL.revokeObjectURL(videoPreview.dataset.objectUrl);
@@ -1619,75 +1665,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-    // Comment handlers
-    document.querySelectorAll('.comment-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const reelId = btn.dataset.reelId;
-        const user = getStoredUser();
-        if (!user) { openModal('login-modal'); return; }
-        
-        const card = btn.closest('.reel-card');
-        let commentForm = card.querySelector('.comment-form');
-        if (!commentForm) {
-          commentForm = document.createElement('div');
-          commentForm.className = 'comment-form';
-          commentForm.innerHTML = `
-            <input class="comment-input" type="text" placeholder="Yorum yaz..." maxlength="200" />
-            <button class="comment-submit">Gönder</button>
-          `;
-          card.appendChild(commentForm);
-          
-          const submitBtn = commentForm.querySelector('.comment-submit');
-          const input = commentForm.querySelector('.comment-input');
-          submitBtn.addEventListener('click', async () => {
-            const text = input.value.trim();
-            if (!text) return;
-            try {
-              await fetchJson(`/api/reel/${reelId}/comment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id, comment: text })
-              });
-              input.value = '';
-              const countEl = btn.querySelector('.count');
-              countEl.textContent = parseInt(countEl.textContent) + 1;
-            } catch (e) { console.error(e); }
-          });
-        }
-        const commentsPanel = card.querySelector('.comments-panel');
-        if (commentsPanel && !commentsPanel.dataset.loaded) {
-          commentsPanel.dataset.loaded = 'loading';
-          try {
-            const { reel } = await fetchJson(`/api/reel/${reelId}`);
-            const comments = reel.comments || [];
-            const list = commentsPanel.querySelector('.comments-list');
-            list.innerHTML = comments.length
-              ? comments.map((item) => `<div class="comment-item ${item.parentId ? 'comment-reply' : ''}"><strong>${escapeHtml(item.username || `Kullanıcı ${item.userId}`)}</strong><span>${escapeHtml(item.comment)}</span>${!item.parentId ? `<button class="reply-comment-btn" type="button" data-comment-id="${item.id}" data-reel-id="${reelId}">Yanıtla</button>` : ''}</div>`).join('')
-              : '<span class="muted">Henüz yorum yok.</span>';
-            list.querySelectorAll('.reply-comment-btn').forEach((replyButton) => replyButton.addEventListener('click', async () => {
-              try {
-                const reply = prompt('Yanıt yaz:');
-                const user = getStoredUser();
-                if (!user || !reply?.trim()) return;
-                await fetchJson(`/api/reel/${replyButton.dataset.reelId}/comment`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId: user.id, comment: reply.trim(), parentId: replyButton.dataset.commentId })
-                });
-                commentsPanel.dataset.loaded = '';
-                commentsPanel.classList.remove('is-open');
-              } catch (error) {
-                console.error(error);
-              }
-            }));
-            commentsPanel.dataset.loaded = 'true';
-          } catch (error) {
-            commentsPanel.querySelector('.comments-list').innerHTML = '<span class="muted">Yorumlar yüklenemedi.</span>';
-            commentsPanel.dataset.loaded = '';
-          }
-        }
-        commentsPanel?.classList.toggle('is-open');
-        commentForm.style.display = commentsPanel?.classList.contains('is-open') ? 'flex' : 'none';
-      });
-    });
 
