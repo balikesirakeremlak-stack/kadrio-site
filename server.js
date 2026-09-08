@@ -1552,7 +1552,7 @@ app.get('/api/feed', async (req, res) => {
       ? [viewerId, viewerId, 'published', viewerId, parseInt(limit), offset]
       : [viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, 'published', parseInt(limit), offset];
     const rows = await allDb(preferredQuery, queryParams);
-    if (rows.length || feedMode === 'following') {
+    if (rows.length || feedMode === 'following' || offset > 0) {
       return res.json({ reels: rows, mode: feedMode });
     }
 
