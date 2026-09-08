@@ -23,7 +23,7 @@ const API_BASE = (() => {
   }
   return FALLBACK_API_BASE;
 })();
-const API_BASE_CANDIDATES = Array.from(new Set(['', API_BASE, FALLBACK_API_BASE].filter(Boolean)));
+const API_BASE_CANDIDATES = Array.from(new Set(['', API_BASE, FALLBACK_API_BASE]));
 
 async function goToCheckout() {
   try {
