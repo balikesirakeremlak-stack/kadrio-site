@@ -14,6 +14,11 @@ let feedSignature = '';
 let feedRefreshTimer = null;
 let feedMode = 'discover';
 let feedRequestId = 0;
+let feedOffset = 0;
+let feedItems = [];
+let feedHasMore = true;
+let feedLoading = false;
+const feedPageSize = 20;
 
 const FALLBACK_API_BASE = 'https://web-production-8f78b.up.railway.app';
 const API_BASE = (() => {
@@ -317,31 +322,58 @@ document.querySelectorAll('.modal').forEach((modal) => {
 });
 
 // === PAGE RENDERING ===
-async function renderFeed(nextMode = feedMode) {
-  feedMode = nextMode;
+async function renderFeed(nextMode = feedMode, append = false) {
+  if (feedLoading || (append && !feedHasMore)) return;
+  if (!append) {
+    feedMode = nextMode;
+    feedOffset = 0;
+    feedItems = [];
+    feedHasMore = true;
+    feedSignature = '';
+  }
+  feedLoading = true;
   const requestId = ++feedRequestId;
-  if (!feedSignature) {
+  if (!append) {
     pageBody.innerHTML = '<section class="feed"><div class="loading">Reeller yükleniyor...</div></section>';
   }
 
   let reels = [];
   let usedDemoFeed = false;
+  let receivedLiveCount = 0;
   try {
-    const { reels: liveReels = [] } = await fetchJson(`/api/feed?limit=50&mode=${feedMode}`);
+    const { reels: liveReels = [] } = await fetchJson(`/api/feed?limit=${feedPageSize}&offset=${feedOffset}&mode=${feedMode}`);
     reels = liveReels;
+    receivedLiveCount = liveReels.length;
   } catch (error) {
+    if (append) {
+      feedHasMore = false;
+      feedLoading = false;
+      return;
+    }
     console.warn('Live feed unavailable; falling back to demo reels.', error);
     reels = getDemoReels();
     usedDemoFeed = true;
   }
 
-  if (requestId !== feedRequestId) return;
+  if (requestId !== feedRequestId) {
+    feedLoading = false;
+    return;
+  }
+
+  if (append) {
+    const existingIds = new Set(feedItems.map((reel) => String(reel.id)));
+    feedItems = [...feedItems, ...reels.filter((reel) => !existingIds.has(String(reel.id)))];
+  } else {
+    feedItems = reels;
+  }
+  reels = feedItems;
+  feedOffset += receivedLiveCount;
+  feedHasMore = !usedDemoFeed && receivedLiveCount >= feedPageSize;
 
   try {
     const currentUser = getStoredUser();
     const nextFeedSignature = (reels || []).map((reel) => `${reel.id}:${reel.timestamp}:${reel.likeCount || 0}:${reel.commentCount || reel.comments || 0}:${reel.shares || 0}`).join('|');
-    if (feedSignature && nextFeedSignature === feedSignature) return;
-    feedSignature = nextFeedSignature;
+    if (!append) feedSignature = nextFeedSignature;
     const hasReels = Boolean(reels && reels.length);
     document.body.classList.toggle('feed-mode', hasReels);
     document.body.classList.toggle('empty-mode', !hasReels);
@@ -391,6 +423,7 @@ async function renderFeed(nextMode = feedMode) {
           if (error.name !== 'AbortError') console.error(error);
         }
       });
+      feedLoading = false;
       return;
     }
 
@@ -727,7 +760,9 @@ async function renderFeed(nextMode = feedMode) {
       });
     });
 
+    feedLoading = false;
   } catch (error) {
+    feedLoading = false;
     console.error(error);
     pageBody.innerHTML = '<section class="feed"><div class="error-state"><strong>Akış şu anda yüklenemedi.</strong><span>Bağlantı kısa süreli kesilmiş olabilir.</span><button id="feed-retry" type="button">Tekrar dene</button></div></section>';
     document.getElementById('feed-retry')?.addEventListener('click', () => renderFeed(feedMode));
@@ -1282,6 +1317,16 @@ function startFeedAutoRefresh() {
   }, 30_000);
 }
 
+function loadMoreFeedOnScroll() {
+  if (!document.body.classList.contains('feed-mode') || feedLoading || !feedHasMore) return;
+  const cards = document.querySelectorAll('.reel-card');
+  const lastCard = cards[cards.length - 1];
+  if (!lastCard) return;
+  if (lastCard.getBoundingClientRect().bottom <= window.innerHeight * 1.8) {
+    renderFeed(feedMode, true).catch(() => {});
+  }
+}
+
 // === EVENT LISTENERS ===
 document.addEventListener('DOMContentLoaded', () => {
   const installBanner = document.getElementById('install-banner');
@@ -1303,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('kadrio-install-dismissed', '1');
     installBanner?.classList.add('hidden');
   });
+  window.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
   const queryParams = new URLSearchParams(window.location.search);
   const source = queryParams.get('utm_source');
   const campaign = queryParams.get('utm_campaign');

@@ -1515,13 +1515,15 @@ app.get('/api/feed', async (req, res) => {
     }
     const requestedLimit = Number.parseInt(req.query.limit, 10);
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
+    const requestedOffset = Number.parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(requestedOffset) ? Math.max(requestedOffset, 0) : 0;
     const followFilter = feedMode === 'following' ? 'AND EXISTS (SELECT 1 FROM follows f WHERE f.followingId = r.userId AND f.followerId = ?)' : '';
     const preferredQuery = feedMode === 'following'
       ? `SELECT r.*, u.username, u.avatar, COUNT(DISTINCT rl.id) as likeCount, COUNT(DISTINCT rc.id) as commentCount,
           CASE WHEN EXISTS (SELECT 1 FROM reel_likes viewer_likes WHERE viewer_likes.userId = ? AND viewer_likes.reelId = r.id) THEN 1 ELSE 0 END as isLiked,
           CASE WHEN EXISTS (SELECT 1 FROM saved_reels saved WHERE saved.userId = ? AND saved.reelId = r.id) THEN 1 ELSE 0 END as isSaved,
           1 as isFollowing
-        FROM reels r JOIN users u ON r.userId = u.id LEFT JOIN reel_likes rl ON rl.reelId = r.id LEFT JOIN reel_comments rc ON rc.reelId = r.id WHERE r.status = ? ${followFilter} GROUP BY r.id ORDER BY r.timestamp DESC LIMIT ?`
+        FROM reels r JOIN users u ON r.userId = u.id LEFT JOIN reel_likes rl ON rl.reelId = r.id LEFT JOIN reel_comments rc ON rc.reelId = r.id WHERE r.status = ? ${followFilter} GROUP BY r.id ORDER BY r.timestamp DESC LIMIT ? OFFSET ?`
       : `SELECT r.*, u.username, u.avatar,
           COUNT(DISTINCT rl.id) as likeCount,
           COUNT(DISTINCT rc.id) as commentCount,
@@ -1545,10 +1547,10 @@ app.get('/api/feed', async (req, res) => {
         WHERE r.status = ?
         GROUP BY r.id
         ORDER BY feedScore DESC, r.timestamp DESC
-        LIMIT ?`;
+        LIMIT ? OFFSET ?`;
     const queryParams = feedMode === 'following'
-      ? [viewerId, viewerId, 'published', viewerId, parseInt(limit)]
-      : [viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, 'published', parseInt(limit)];
+      ? [viewerId, viewerId, 'published', viewerId, parseInt(limit), offset]
+      : [viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, viewerId, 'published', parseInt(limit), offset];
     const rows = await allDb(preferredQuery, queryParams);
     if (rows.length || feedMode === 'following') {
       return res.json({ reels: rows, mode: feedMode });
