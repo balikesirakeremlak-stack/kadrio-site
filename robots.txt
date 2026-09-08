@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-Sitemap: https://web-production-8f78b.up.railway.app/sitemap.xml
+Sitemap: https://www.kadrio.co/sitemap.xml
+Sitemap: https://www.kadrio.co/video-sitemap.xml

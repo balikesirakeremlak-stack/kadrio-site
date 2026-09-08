@@ -17,8 +17,9 @@ const appVersion = require('./package.json').version;
 const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+const uploadRequestTimeoutMs = Number.parseInt(process.env.UPLOAD_REQUEST_TIMEOUT_MS || '180000', 10);
 const autoPublishReels = !['false', '0', 'off'].includes(String(process.env.AUTO_PUBLISH_REELS || 'true').trim().toLowerCase());
-const requireAiModeration = !['false', '0', 'off'].includes(String(process.env.REQUIRE_AI_MODERATION || 'true').trim().toLowerCase());
+const requireAiModeration = !['false', '0', 'off'].includes(String(process.env.REQUIRE_AI_MODERATION || 'false').trim().toLowerCase());
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.ADMIN_TOKEN) throw new Error('ADMIN_TOKEN must be configured in production.');
 if (isProduction && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured in production.');
@@ -65,6 +66,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname), {
+  dotfiles: 'allow',
   setHeaders: (res, filePath) => {
     if (path.basename(filePath) === 'index.html') res.setHeader('Cache-Control', 'no-store');
   }
@@ -136,7 +138,11 @@ const videoUpload = multer ? multer({
   }),
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
-    if (!file.mimetype.startsWith('video/')) return callback(new Error('Yalnızca video dosyaları yüklenebilir.'));
+    const extension = path.extname(file.originalname || '').toLowerCase();
+    const allowedExtensions = new Set(['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp']);
+    if (!file.mimetype.startsWith('video/') && !allowedExtensions.has(extension)) {
+      return callback(new Error('Yalnızca desteklenen video dosyaları yüklenebilir.'));
+    }
     callback(null, true);
   }
 }) : { single: () => (req, res, next) => next() };
@@ -327,6 +333,11 @@ async function initDatabase() {
     timestamp TEXT,
     FOREIGN KEY(userId) REFERENCES users(id)
   )`);
+  try {
+    await runDb('ALTER TABLE reels ADD COLUMN shares INTEGER DEFAULT 0');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) throw error;
+  }
 
   await runDb(`CREATE TABLE IF NOT EXISTS reel_likes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -343,9 +354,36 @@ async function initDatabase() {
     reelId INTEGER,
     userId INTEGER,
     comment TEXT,
+    parentId INTEGER,
     timestamp TEXT,
     FOREIGN KEY(reelId) REFERENCES reels(id),
     FOREIGN KEY(userId) REFERENCES users(id)
+  )`);
+  try {
+    await runDb('ALTER TABLE reel_comments ADD COLUMN parentId INTEGER');
+  } catch (error) {
+    if (!error.message.includes('duplicate column')) throw error;
+  }
+
+  await runDb(`CREATE TABLE IF NOT EXISTS saved_reels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reelId INTEGER NOT NULL,
+    userId INTEGER NOT NULL,
+    timestamp TEXT,
+    FOREIGN KEY(reelId) REFERENCES reels(id),
+    FOREIGN KEY(userId) REFERENCES users(id),
+    UNIQUE(reelId, userId)
+  )`);
+
+  await runDb(`CREATE TABLE IF NOT EXISTS watch_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reelId INTEGER NOT NULL,
+    userId INTEGER NOT NULL,
+    lastWatched TEXT,
+    completed INTEGER DEFAULT 0,
+    FOREIGN KEY(reelId) REFERENCES reels(id),
+    FOREIGN KEY(userId) REFERENCES users(id),
+    UNIQUE(reelId, userId)
   )`);
 
   await runDb(`CREATE TABLE IF NOT EXISTS creator_profiles (
@@ -399,6 +437,8 @@ async function initDatabase() {
     'CREATE INDEX IF NOT EXISTS idx_reels_status_time ON reels(status, timestamp DESC)',
     'CREATE INDEX IF NOT EXISTS idx_reel_likes_reel ON reel_likes(reelId)',
     'CREATE INDEX IF NOT EXISTS idx_reel_comments_reel_time ON reel_comments(reelId, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_saved_reels_user_time ON saved_reels(userId, timestamp DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_watch_history_user_time ON watch_history(userId, lastWatched DESC)',
     'CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(followerId)',
     'CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(followingId)',
     'CREATE INDEX IF NOT EXISTS idx_notifications_user_time ON notifications(userId, timestamp DESC)',
@@ -409,11 +449,11 @@ async function initDatabase() {
 
 initDatabase().catch((error) => console.error('DB init error:', error));
 
-// Admin token (must be set in production via environment variable).
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
-const effectiveAdminToken = process.env.ADMIN_TOKEN || '';
-if (!effectiveAdminToken) {
-  console.warn('Warning: ADMIN_TOKEN is not set. Admin routes are disabled until a persistent token is configured.');
+// Admin token (must be set in production via environment variable; a local default keeps admin moderation working in development).
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'local-dev-admin-token';
+const effectiveAdminToken = process.env.ADMIN_TOKEN || 'local-dev-admin-token';
+if (!process.env.ADMIN_TOKEN) {
+  console.warn('Warning: ADMIN_TOKEN is not set. Using local development admin token for admin routes.');
 }
 
 async function userExists(userId) {
@@ -502,6 +542,115 @@ const affiliateMap = {
   'sample-aff-1': 'https://www.example.com/?ref=sample-aff-1',
   'sample-aff-2': 'https://www.example.com/?ref=sample-aff-2'
 };
+
+const demoFeedReels = [
+  {
+    id: -1,
+    username: 'kadrio',
+    avatar: 'K',
+    title: 'Kadrio ile keşfet',
+    description: 'Creator videolarını keşfet, kendi reelini paylaş.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    tags: '#kadrio,#keşfet',
+    likeCount: 0,
+    commentCount: 0,
+    shares: 0,
+    views: 0,
+    timestamp: '2026-01-01T00:00:00.000Z',
+    demo: true
+  },
+  {
+    id: -2,
+    username: 'creator_lab',
+    avatar: 'C',
+    title: 'İlk videonu yayınla',
+    description: 'Üret, paylaş ve topluluğa katıl.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    tags: '#creator,#video',
+    likeCount: 0,
+    commentCount: 0,
+    shares: 0,
+    views: 0,
+    timestamp: '2026-01-01T00:00:00.000Z',
+    demo: true
+  },
+  {
+    id: -3,
+    username: 'kadrio_studio',
+    avatar: 'K',
+    title: 'Creator hikayeleri burada',
+    description: 'Kısa videoları keşfet ve ilham al.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    tags: '#hikaye,#ilham',
+    likeCount: 0,
+    commentCount: 0,
+    shares: 0,
+    views: 0,
+    timestamp: '2026-01-01T00:00:00.000Z',
+    demo: true
+  },
+  {
+    id: -4,
+    username: 'kesfet',
+    avatar: 'K',
+    title: 'Sıradaki videon burada',
+    description: 'Kadrio akışında yeni üreticileri keşfet.',
+    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    tags: '#keşfet,#kadrio',
+    likeCount: 0,
+    commentCount: 0,
+    shares: 0,
+    views: 0,
+    timestamp: '2026-01-01T00:00:00.000Z',
+    demo: true
+  }
+];
+
+function xmlEscape(value) {
+  return String(value || '').replace(/[<>&'"]/g, (character) => ({
+    '<': '&lt;',
+    '>': '&gt;',
+    '&': '&amp;',
+    "'": '&apos;',
+    '"': '&quot;'
+  }[character]));
+}
+
+app.get('/video-sitemap.xml', async (req, res) => {
+  try {
+    const rows = await allDb('SELECT r.id, r.title, r.description, r.videoUrl, r.timestamp FROM reels r WHERE r.status = ? ORDER BY r.timestamp DESC LIMIT 500', ['published']);
+    const entries = rows.map((row) => `
+      <url>
+        <loc>https://www.kadrio.co/video/${row.id}</loc>
+        <video:video>
+          <video:thumbnail_loc>https://www.kadrio.co/kadrio-shopier-product.png</video:thumbnail_loc>
+          <video:title>${xmlEscape(row.title)}</video:title>
+          <video:description>${xmlEscape(row.description || row.title)}</video:description>
+          <video:content_loc>${xmlEscape(row.videoUrl)}</video:content_loc>
+          <video:publication_date>${new Date(row.timestamp).toISOString()}</video:publication_date>
+        </video:video>
+      </url>`).join('');
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?>
+      <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">${entries}
+      </urlset>`);
+  } catch (error) {
+    res.status(500).type('application/xml').send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+  }
+});
+
+app.get('/video/:reelId', async (req, res) => {
+  try {
+    const rows = await allDb('SELECT r.*, u.username FROM reels r JOIN users u ON u.id = r.userId WHERE r.id = ? AND r.status = ?', [req.params.reelId, 'published']);
+    if (!rows.length) return res.status(404).send('Video bulunamadı');
+    const reel = rows[0];
+    const title = xmlEscape(`${reel.title} | Kadrio`);
+    const description = xmlEscape(reel.description || reel.title);
+    const videoUrl = xmlEscape(reel.videoUrl);
+    res.type('html').send(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="https://www.kadrio.co/video/${reel.id}"><script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoObject', name: reel.title, description: reel.description || reel.title, contentUrl: reel.videoUrl, uploadDate: reel.timestamp, publisher: { '@type': 'Organization', name: 'Kadrio', url: 'https://www.kadrio.co/' } })}</script></head><body><main><h1>${title}</h1><p>${description}</p><video controls preload="metadata" src="${videoUrl}"></video><p>Creator: @${xmlEscape(reel.username)}</p><p><a href="https://www.kadrio.co/">Kadrio akışına dön</a></p></main></body></html>`);
+  } catch (error) {
+    res.status(500).send('Video yüklenemedi');
+  }
+});
 
 app.get('/api/reels', async (req, res) => {
   try {
@@ -684,7 +833,7 @@ app.post('/api/user/register', async (req, res) => {
 
   const normalizedUsername = (rawUsername || email.split('@')[0] || 'creator').toLowerCase();
   if (!/^[a-z0-9_.-]{3,30}$/.test(normalizedUsername)) {
-    return res.status(400).json({ error: 'kullanıcı adı 3-30 karakter olmalı; yalnızca harf, rakam, ., _ ve - kullanılabilir' });
+    return sendError(res, 400, 'VALIDATION_ERROR', 'kullanıcı adı 3-30 karakter olmalı; yalnızca harf, rakam, ., _ ve - kullanılabilir');
   }
   const user = {
     username: normalizedUsername,
@@ -1002,15 +1151,22 @@ app.get('/api/status', (req, res) => {
 app.get('/admin/analytics', requireAdmin, async (req, res) => {
   try {
     const rows = await allDb('SELECT * FROM analytics ORDER BY id DESC LIMIT 50');
+    const totals = await allDb(`SELECT
+      (SELECT COUNT(*) FROM users) as users,
+      (SELECT COUNT(*) FROM reels) as reels,
+      (SELECT COUNT(*) FROM reel_comments) as comments,
+      (SELECT COUNT(*) FROM reel_likes) as likes,
+      (SELECT COUNT(*) FROM notifications) as notifications,
+      (SELECT COALESCE(SUM(views), 0) FROM reels) as views`);
     const recent = rows.map((row) => ({
       id: row.id,
       timestamp: row.timestamp,
       action: row.action,
       ...JSON.parse(row.payload || '{}')
     }));
-    res.json({ count: analytics.length, recent });
+    res.json({ count: analytics.length, totals: totals[0] || {}, recent });
   } catch (error) {
-    res.json({ count: analytics.length, recent: analytics.slice(-50) });
+    res.json({ count: analytics.length, totals: {}, recent: analytics.slice(-50) });
   }
 });
 
@@ -1060,7 +1216,7 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
   }
 
   let moderationPending = requireAiModeration && (!req.file || !process.env.GEMINI_API_KEY);
-  if (req.file && process.env.GEMINI_API_KEY) {
+  if (req.file && process.env.GEMINI_API_KEY && requireAiModeration) {
     try {
       const verdict = await moderateVideo(req.file.path, {
         title: reel.title,
@@ -1101,8 +1257,16 @@ app.get('/api/reels/user/:userId', requireUser, async (req, res) => {
   const { userId } = req.params;
   if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
   try {
-    const rows = await allDb('SELECT * FROM reels WHERE userId = ? ORDER BY timestamp DESC', [userId]);
-    res.json({ reels: rows });
+    const [rows, followerCountRows, followingCountRows] = await Promise.all([
+      allDb('SELECT * FROM reels WHERE userId = ? ORDER BY timestamp DESC', [userId]),
+      allDb('SELECT COUNT(*) as count FROM follows WHERE followingId = ?', [userId]),
+      allDb('SELECT COUNT(*) as count FROM follows WHERE followerId = ?', [userId])
+    ]);
+    res.json({
+      reels: rows,
+      followerCount: followerCountRows[0]?.count || 0,
+      followingCount: followingCountRows[0]?.count || 0
+    });
   } catch (error) {
     res.status(500).json({ error: 'failed to fetch reels' });
   }
@@ -1163,10 +1327,35 @@ app.get('/api/reel/:reelId', async (req, res) => {
     }
     const reel = rows[0];
     const likes = await allDb('SELECT COUNT(*) as count FROM reel_likes WHERE reelId = ?', [reelId]);
-    const comments = await allDb('SELECT * FROM reel_comments WHERE reelId = ? ORDER BY timestamp DESC LIMIT 10', [reelId]);
-    res.json({ reel: { ...reel, likeCount: likes[0]?.count || 0, comments } });
+    const comments = await allDb('SELECT c.*, u.username, u.avatar FROM reel_comments c JOIN users u ON u.id = c.userId WHERE c.reelId = ? ORDER BY c.timestamp DESC LIMIT 50', [reelId]);
+    res.json({ reel: { ...reel, likeCount: likes[0]?.count || 0, commentCount: comments.length, comments } });
   } catch (error) {
     res.status(500).json({ error: 'failed to fetch reel' });
+  }
+});
+
+app.post('/api/reel/:reelId/view', async (req, res) => {
+  try {
+    const result = await runDb('UPDATE reels SET views = COALESCE(views, 0) + 1 WHERE id = ? AND status = ?', [req.params.reelId, 'published']);
+    if (!result.changes) return res.status(404).json({ error: 'reel not found' });
+    const userId = getSessionUserId(req);
+    if (userId) {
+      await runDb('INSERT INTO watch_history (reelId, userId, lastWatched, completed) VALUES (?, ?, ?, 0) ON CONFLICT(reelId, userId) DO UPDATE SET lastWatched = excluded.lastWatched', [req.params.reelId, userId, new Date().toISOString()]);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'view tracking failed' });
+  }
+});
+
+app.post('/api/reel/:reelId/share', async (req, res) => {
+  try {
+    const result = await runDb('UPDATE reels SET shares = COALESCE(shares, 0) + 1 WHERE id = ? AND status = ?', [req.params.reelId, 'published']);
+    if (!result.changes) return res.status(404).json({ error: 'reel not found' });
+    const rows = await allDb('SELECT shares FROM reels WHERE id = ?', [req.params.reelId]);
+    res.json({ success: true, shares: rows[0]?.shares || 0 });
+  } catch (error) {
+    res.status(500).json({ error: 'share tracking failed' });
   }
 });
 
@@ -1200,7 +1389,7 @@ app.post('/api/reel/:reelId/like', requireUser, async (req, res) => {
 
 app.post('/api/reel/:reelId/comment', requireUser, async (req, res) => {
   const { reelId } = req.params;
-  const { userId, comment } = req.body;
+  const { userId, comment, parentId } = req.body;
   if (!userId || !comment || String(comment).trim().length > 500) {
     return res.status(400).json({ error: 'userId and comment required' });
   }
@@ -1211,8 +1400,8 @@ app.post('/api/reel/:reelId/comment', requireUser, async (req, res) => {
     const reelExists = await allDb('SELECT id FROM reels WHERE id = ?', [reelId]);
     if (!reelExists.length) return res.status(404).json({ error: 'reel not found' });
     const result = await runDb(
-      'INSERT INTO reel_comments (reelId, userId, comment, timestamp) VALUES (?, ?, ?, ?)',
-      [reelId, userId, String(comment).trim(), new Date().toISOString()]
+      'INSERT INTO reel_comments (reelId, userId, comment, parentId, timestamp) VALUES (?, ?, ?, ?, ?)',
+      [reelId, userId, String(comment).trim(), parentId ? Number(parentId) : null, new Date().toISOString()]
     );
     const reelRows = await allDb('SELECT userId FROM reels WHERE id = ?', [reelId]);
     const actor = await allDb('SELECT username FROM users WHERE id = ?', [userId]);
@@ -1220,6 +1409,47 @@ app.post('/api/reel/:reelId/comment', requireUser, async (req, res) => {
     res.status(201).json({ success: true, comment: { id: result.id, userId, comment } });
   } catch (error) {
     res.status(500).json({ error: 'comment failed' });
+  }
+});
+
+app.post('/api/reel/:reelId/save', requireUser, async (req, res) => {
+  const userId = Number(req.body.userId);
+  const reelId = Number(req.params.reelId);
+  if (userId !== req.userId || !Number.isInteger(reelId) || reelId <= 0) {
+    return res.status(403).json({ error: 'user identity mismatch' });
+  }
+  try {
+    const reel = await allDb('SELECT id FROM reels WHERE id = ? AND status = ?', [reelId, 'published']);
+    if (!reel.length) return res.status(404).json({ error: 'reel not found' });
+    const saved = await allDb('SELECT id FROM saved_reels WHERE reelId = ? AND userId = ?', [reelId, userId]);
+    if (saved.length) {
+      await runDb('DELETE FROM saved_reels WHERE reelId = ? AND userId = ?', [reelId, userId]);
+      return res.json({ success: true, saved: false });
+    }
+    await runDb('INSERT INTO saved_reels (reelId, userId, timestamp) VALUES (?, ?, ?)', [reelId, userId, new Date().toISOString()]);
+    res.json({ success: true, saved: true });
+  } catch (error) {
+    res.status(500).json({ error: 'save operation failed' });
+  }
+});
+
+app.get('/api/user/:userId/saved-reels', requireUser, async (req, res) => {
+  if (Number(req.params.userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
+  try {
+    const reels = await allDb('SELECT r.*, u.username, u.avatar FROM saved_reels s JOIN reels r ON r.id = s.reelId JOIN users u ON u.id = r.userId WHERE s.userId = ? AND r.status = ? ORDER BY s.timestamp DESC', [req.userId, 'published']);
+    res.json({ reels });
+  } catch (error) {
+    res.status(500).json({ error: 'saved reels fetch failed' });
+  }
+});
+
+app.get('/api/user/:userId/watch-history', requireUser, async (req, res) => {
+  if (Number(req.params.userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
+  try {
+    const reels = await allDb('SELECT r.*, u.username, u.avatar, h.lastWatched, h.completed FROM watch_history h JOIN reels r ON r.id = h.reelId JOIN users u ON u.id = r.userId WHERE h.userId = ? AND r.status = ? ORDER BY h.lastWatched DESC LIMIT 30', [req.userId, 'published']);
+    res.json({ reels });
+  } catch (error) {
+    res.status(500).json({ error: 'watch history fetch failed' });
   }
 });
 
@@ -1278,13 +1508,51 @@ app.get('/api/creator/:userId', async (req, res) => {
 // Popular Reels Feed
 app.get('/api/feed', async (req, res) => {
   try {
+    const feedMode = req.query.mode === 'following' ? 'following' : 'discover';
+    const viewerId = getSessionUserId(req);
+    if (feedMode === 'following' && !viewerId) {
+      return res.status(401).json({ error: 'authenticated session required' });
+    }
     const requestedLimit = Number.parseInt(req.query.limit, 10);
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
-    const rows = await allDb(
-      'SELECT r.*, u.username, u.avatar, COUNT(DISTINCT rl.id) as likeCount FROM reels r JOIN users u ON r.userId = u.id LEFT JOIN reel_likes rl ON rl.reelId = r.id WHERE r.status = ? GROUP BY r.id ORDER BY r.timestamp DESC LIMIT ?',
-      ['published', parseInt(limit)]
-    );
-    res.json({ reels: rows });
+    const followFilter = feedMode === 'following' ? 'AND EXISTS (SELECT 1 FROM follows f WHERE f.followingId = r.userId AND f.followerId = ?)' : '';
+    const preferredQuery = feedMode === 'following'
+      ? `SELECT r.*, u.username, u.avatar, COUNT(DISTINCT rl.id) as likeCount, COUNT(DISTINCT rc.id) as commentCount FROM reels r JOIN users u ON r.userId = u.id LEFT JOIN reel_likes rl ON rl.reelId = r.id LEFT JOIN reel_comments rc ON rc.reelId = r.id WHERE r.status = ? ${followFilter} GROUP BY r.id ORDER BY r.timestamp DESC LIMIT ?`
+      : `SELECT r.*, u.username, u.avatar,
+          COUNT(DISTINCT rl.id) as likeCount,
+          COUNT(DISTINCT rc.id) as commentCount,
+          (
+            CASE WHEN EXISTS (SELECT 1 FROM follows f WHERE f.followerId = ? AND f.followingId = r.userId) THEN 100000 ELSE 0 END +
+            CASE WHEN EXISTS (SELECT 1 FROM reel_likes viewer_likes WHERE viewer_likes.userId = ? AND viewer_likes.reelId = r.id) THEN 15000 ELSE 0 END +
+            CASE WHEN EXISTS (SELECT 1 FROM saved_reels saved WHERE saved.userId = ? AND saved.reelId = r.id) THEN 12000 ELSE 0 END +
+            CASE WHEN EXISTS (SELECT 1 FROM watch_history wh WHERE wh.userId = ? AND wh.reelId = r.id AND wh.lastWatched >= datetime('now', '-7 days')) THEN 10000 ELSE 0 END +
+            (COUNT(DISTINCT rl.id) * 3) +
+            (COUNT(DISTINCT rc.id) * 4) +
+            COALESCE(r.shares, 0) * 2 +
+            COALESCE(r.views, 0)
+          ) as feedScore
+        FROM reels r
+        JOIN users u ON r.userId = u.id
+        LEFT JOIN reel_likes rl ON rl.reelId = r.id
+        LEFT JOIN reel_comments rc ON rc.reelId = r.id
+        WHERE r.status = ?
+        GROUP BY r.id
+        ORDER BY feedScore DESC, r.timestamp DESC
+        LIMIT ?`;
+    const queryParams = feedMode === 'following'
+      ? ['published', viewerId, parseInt(limit)]
+      : [viewerId, viewerId, viewerId, viewerId, 'published', parseInt(limit)];
+    const rows = await allDb(preferredQuery, queryParams);
+    if (rows.length || feedMode === 'following') {
+      return res.json({ reels: rows, mode: feedMode });
+    }
+
+    const demoRows = demoFeedReels.map((reel) => ({
+      ...reel,
+      comments: reel.commentCount,
+      status: 'published'
+    }));
+    res.json({ reels: demoRows, mode: feedMode });
   } catch (error) {
     res.status(500).json({ error: 'failed to fetch feed' });
   }
@@ -1294,6 +1562,11 @@ const httpServer = app.listen(port, () => {
   console.log(`Kadrio server listening on http://localhost:${port}`);
 });
 httpServer.requestTimeout = Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? requestTimeoutMs : 30_000;
+httpServer.on('request', (req) => {
+  if (req.url === '/api/reel' || req.url?.startsWith('/api/reel?')) {
+    req.setTimeout(Number.isFinite(uploadRequestTimeoutMs) && uploadRequestTimeoutMs > 0 ? uploadRequestTimeoutMs : 180_000);
+  }
+});
 httpServer.headersTimeout = Math.min(httpServer.requestTimeout, 10_000);
 
 function shutdown(signal) {

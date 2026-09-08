@@ -1,14 +1,15 @@
 {
   "name": "Kadrio - İçerik Akış Platformu",
   "short_name": "Kadrio",
+  "id": "/?source=pwa",
   "description": "Kısa video keşif alanı ve creator tanıtım platformu.",
   "lang": "tr-TR",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b0e12",
-  "theme_color": "#0b0e12",
+  "background_color": "#050505",
+  "theme_color": "#fe2c55",
   "categories": ["entertainment", "social", "business"],
   "icons": [
     {

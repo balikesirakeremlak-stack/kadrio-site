@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kadrio - İçerik Akış Platformu</title>
-  <meta name="description" content="Kadrio ile kısa videoları keşfet, ilk creator topluluğuna katıl ve Shopier güvencesiyle tek ürün tanıtım paketini satın al." />
+  <title>Kadrio | Kısa Video ve Creator Keşif Platformu</title>
+  <meta name="description" content="Kadrio'da kısa videoları keşfet, creator'ları takip et, kendi reelinizi yayınla ve markanı yeni kitlelerle buluştur." />
+  <meta name="keywords" content="kısa video, reel, creator, video keşfet, Türk creator, içerik üreticisi, marka tanıtımı, video platformu" />
   <meta name="theme-color" content="#0b0e12" />
   <meta name="application-name" content="Kadrio" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,29 +13,53 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Kadrio - Creator video platform" />
-  <meta property="og:description" content="Kısa videoları keşfet, ilk creator topluluğuna katıl ve tanıtım paketini Shopier güvencesiyle satın al." />
-  <meta property="og:url" content="https://www.kadrio.com/" />
-  <meta property="og:image" content="https://www.kadrio.com/kadrio-shopier-product.png" />
+  <meta property="og:description" content="Kısa videoları keşfet, creator'ları takip et ve kendi reelini yayınla." />
+  <meta property="og:url" content="https://www.kadrio.co/" />
+  <meta property="og:image" content="https://www.kadrio.co/kadrio-shopier-product.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Kadrio - Kısa videoların yeni keşif alanı" />
   <meta name="twitter:description" content="Kısa videoları keşfet, creator'ları takip et ve tanıtım paketini Shopier güvencesiyle satın al." />
-  <meta name="twitter:image" content="https://www.kadrio.com/kadrio-shopier-product.png" />
-  <link rel="canonical" href="https://www.kadrio.com/" />
-  <link rel="manifest" href="manifest.webmanifest?v=20260902" />
+  <meta name="twitter:image" content="https://www.kadrio.co/kadrio-shopier-product.png" />
+  <link rel="canonical" href="https://www.kadrio.co/" />
+  <link rel="manifest" href="manifest.webmanifest?v=20260938" />
   <link rel="icon" href="kadrio-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="kadrio-shopier-product.png" />
-  <link rel="stylesheet" href="style.css?v=20260902" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Kadrio",
+      "url": "https://www.kadrio.co/",
+      "description": "Kısa videoları keşfet, creator'ları takip et ve kendi reelini yayınla.",
+      "inLanguage": "tr-TR",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://www.kadrio.co/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css?v=20260938" />
 </head>
 <body>
   <div class="app-shell">
+    <aside id="install-banner" class="install-banner hidden" aria-live="polite">
+      <div><strong>Kadrio'yu telefona ekle</strong><small>Daha hızlı açılır, uygulama gibi kullanılır.</small></div>
+      <button id="install-app-button" type="button">Yükle</button>
+      <button id="dismiss-install" type="button" aria-label="Kapat">×</button>
+    </aside>
     <header class="top-bar">
       <a class="brand-group" href="/" aria-label="Kadrio ana sayfa">
         <div class="brand">KADRIO</div>
         <div class="brand-tag">Creator video platform</div>
       </a>
       <div class="top-actions">
-        <button class="icon-button" aria-label="Arama">🔎</button>
-        <button id="notifications-button" class="icon-button" aria-label="Bildirimler">🔔</button>
+        <form id="search-form" class="search-form" role="search">
+          <label class="sr-only" for="search-input">Kullanıcı veya reel ara</label>
+          <input id="search-input" type="search" minlength="2" maxlength="80" placeholder="Ara..." autocomplete="off" />
+          <button class="icon-button search-submit" type="submit" aria-label="Arama"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg></button>
+        </form>
+        <button id="notifications-button" class="icon-button notification-button" aria-label="Bildirimler"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg><span id="notification-badge" class="notification-badge hidden" aria-label="Okunmamış bildirim sayısı"></span></button>
         <button class="text-button">Giriş Yap</button>
       </div>
     </header>
@@ -47,23 +72,23 @@
 
     <nav class="bottom-nav">
       <button class="nav-item active" data-page="akis">
-        <span class="nav-icon">🎬</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg></span>
         <span class="nav-label">Akış</span>
       </button>
       <button class="nav-item" data-page="trend">
-        <span class="nav-icon">🔥</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M4 17 10 11l4 4 6-7"></path><path d="M15 8h5v5"></path></svg></span>
         <span class="nav-label">Trend</span>
       </button>
       <button class="nav-item" data-page="uret">
-        <span class="nav-icon">➕</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
         <span class="nav-label">Üret</span>
       </button>
       <button class="nav-item" data-page="profil">
-        <span class="nav-icon">👤</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>
         <span class="nav-label">Profil</span>
       </button>
       <button class="nav-item" data-page="admin">
-        <span class="nav-icon">⚙️</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.4 1.4-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V20h-2v-.2a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L9 17.1l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H7v-2h.8a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L9 9.1 10.4 7.7l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.6V6h2v.5a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 9l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.5v2H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg></span>
         <span class="nav-label">Admin</span>
       </button>
     </nav>
@@ -73,10 +98,14 @@
 
   <!-- MODALS -->
   <div id="login-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog auth-modal">
       <button class="close-modal" aria-label="Kapat">✕</button>
-      <h3>Giriş Yap</h3>
-      <form id="login-form" class="form-grid">
+      <div class="auth-header">
+        <span class="auth-badge">KADRIO</span>
+        <h3>Giriş Yap</h3>
+        <p>Creator hesabına erişip içerik üretmeye başla.</p>
+      </div>
+      <form id="login-form" class="form-grid auth-form">
         <div class="input-group">
           <label id="auth-identity-label" for="login-email">E-posta veya kullanıcı adı</label>
           <input id="login-email" type="text" autocomplete="username" placeholder="kullanici veya mail@ornek.com" required />
@@ -89,7 +118,8 @@
           <p id="auth-helper" class="form-helper">Giriş için kullanıcı adı veya e-posta yaz.</p>
           <div id="auth-error" class="form-error hidden" role="alert"></div>
         </div>
-        <button type="submit" class="submit-button" id="auth-submit-button">Giriş Yap</button>
+        <button type="button" class="secondary-button auth-quick-fill" id="auth-quick-fill">Hızlı Doldur</button>
+        <button type="submit" class="submit-button auth-submit" id="auth-submit-button">Giriş Yap</button>
         <button type="button" class="text-button auth-mode-toggle" id="auth-mode-toggle">Hesap oluştur</button>
       </form>
     </div>
@@ -129,17 +159,22 @@
           <label for="campaign-goal">Hedef</label>
           <textarea id="campaign-goal" name="campaignGoal" placeholder="Kampanya hedefi..." required></textarea>
         </div>
+        <button type="button" class="secondary-button package-quick-fill" id="package-quick-fill">Otomatik Doldur</button>
         <button type="submit" class="submit-button">Gönder</button>
       </form>
     </div>
   </div>
 
   <div id="reel-upload-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog upload-modal">
       <button class="close-modal" aria-label="Kapat">✕</button>
-      <h3>Yeni Reel Yükle</h3>
+      <div class="upload-header">
+        <span class="auth-badge">ÜRET</span>
+        <h3>Yeni Reel Yükle</h3>
+        <p>Videonu yükle, başlığını ve etiketlerini hazırla, akışa katıl.</p>
+      </div>
       <p class="upload-safety-note">Silah, cinsel içerik ve şiddet içeren videolar yayınlanamaz.</p>
-      <form id="reel-upload-form" class="form-grid">
+      <form id="reel-upload-form" class="form-grid upload-form">
         <div class="input-group">
           <label for="reel-title">Başlık *</label>
           <input id="reel-title" name="title" type="text" placeholder="Reel başlığı" required />
@@ -152,15 +187,23 @@
           <label for="reel-tags">Etiketler (virgülle ayırın)</label>
           <input id="reel-tags" name="tags" type="text" placeholder="#trend #viral #komedi" />
         </div>
-        <div class="input-group">
+        <div class="input-group upload-file-group">
           <label for="reel-video">Video dosyası</label>
-          <input id="reel-video" name="video" type="file" accept="video/*" required />
+          <input id="reel-video" name="video" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" required />
+          <small class="field-hint">MP4, WebM veya MOV · en fazla 100 MB</small>
+          <video id="reel-preview" class="reel-preview hidden" controls muted playsinline></video>
         </div>
-        <button type="submit" class="submit-button">Yayınla</button>
+        <button type="button" class="secondary-button upload-quick-fill" id="upload-quick-fill">Otomatik Hazırla</button>
+        <button type="submit" class="submit-button upload-submit">Yayınla</button>
+        <div id="upload-progress" class="upload-progress hidden" aria-live="polite">
+          <div class="upload-progress-track"><span></span></div>
+          <small>Video yükleniyor... <strong>0%</strong></small>
+        </div>
+        <div id="upload-error" class="form-error hidden" role="alert"></div>
       </form>
     </div>
   </div>
 
-  <script src="app.js?v=20260902"></script>
+  <script src="app.js?v=20260938"></script>
 </body>
 </html>

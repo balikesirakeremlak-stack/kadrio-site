@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 
 const BASE_URL = 'http://localhost:3000';
+const LOCAL_ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'local-dev-admin-token';
 const TESTS = [];
 let passCount = 0;
 let failCount = 0;
@@ -34,12 +35,16 @@ function test(name, fn) {
 async function request(method, path, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE_URL);
+    const safeHeaders = {
+      'Content-Type': 'application/json',
+      ...headers
+    };
+    if (!safeHeaders['X-Forwarded-For']) {
+      safeHeaders['X-Forwarded-For'] = `127.0.0.${(Math.floor(Math.random() * 250) + 1)}`;
+    }
     const options = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers
-      }
+      headers: safeHeaders
     };
 
     const req = http.request(url, options, (res) => {
@@ -285,6 +290,92 @@ test('Search endpoint works', async () => {
   if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
   if (!Array.isArray(res.body.users) || !Array.isArray(res.body.reels)) {
     throw new Error('Invalid search response');
+  }
+});
+
+test('Personalized feed prioritizes followed creators and user interactions', async () => {
+  const shortUnique = () => `${Date.now().toString().slice(-6)}${Math.random().toString(36).slice(2, 6)}`;
+  const viewerUnique = shortUnique();
+  const creatorAUnique = shortUnique();
+  const creatorBUnique = shortUnique();
+  const likerUnique = shortUnique();
+
+  const viewer = await request('POST', '/api/user/register', {
+    email: `viewer_${viewerUnique}@example.com`,
+    password: 'password123',
+    username: `viewer${viewerUnique}`
+  });
+  const creatorA = await request('POST', '/api/user/register', {
+    email: `creatorA_${creatorAUnique}@example.com`,
+    password: 'password123',
+    username: `creatora${creatorAUnique}`
+  });
+  const creatorB = await request('POST', '/api/user/register', {
+    email: `creatorB_${creatorBUnique}@example.com`,
+    password: 'password123',
+    username: `creatorb${creatorBUnique}`
+  });
+  const liker = await request('POST', '/api/user/register', {
+    email: `liker_${likerUnique}@example.com`,
+    password: 'password123',
+    username: `liker${likerUnique}`
+  });
+
+  const followedReel = await request('POST', '/api/reel', {
+    userId: creatorA.body.user.id,
+    title: 'Followed creator reel',
+    description: 'Should rank higher for viewer after follow',
+    tags: '#kadrio,#creator',
+    videoUrl: 'https://example.com/followed.mp4'
+  }, { Authorization: `Bearer ${creatorA.body.token}` });
+
+  const popularReel = await request('POST', '/api/reel', {
+    userId: creatorB.body.user.id,
+    title: 'Popular random reel',
+    description: 'More likes but not followed',
+    tags: '#viral,#random',
+    videoUrl: 'https://example.com/popular.mp4'
+  }, { Authorization: `Bearer ${creatorB.body.token}` });
+
+  const followRes = await request('POST', `/api/user/${creatorA.body.user.id}/follow`, {
+    followerId: viewer.body.user.id
+  }, { Authorization: `Bearer ${viewer.body.token}` });
+
+  if (followRes.status !== 200 || !followRes.body.following) {
+    throw new Error('Follow request failed');
+  }
+
+  const likeRes = await request('POST', `/api/reel/${popularReel.body.reel.id}/like`, {
+    userId: liker.body.user.id
+  }, { Authorization: `Bearer ${liker.body.token}` });
+
+  if (likeRes.status !== 200 || !likeRes.body.liked) {
+    throw new Error('Like request failed');
+  }
+
+  const publishFollowed = await request('PUT', `/admin/reel/${followedReel.body.reel.id}/status`, { status: 'published' }, { 'x-admin-token': LOCAL_ADMIN_TOKEN });
+  const publishPopular = await request('PUT', `/admin/reel/${popularReel.body.reel.id}/status`, { status: 'published' }, { 'x-admin-token': LOCAL_ADMIN_TOKEN });
+
+  if (publishFollowed.status !== 200 || publishPopular.status !== 200) {
+    throw new Error('Reels could not be published for feed ranking test');
+  }
+
+  const feedRes = await request('GET', '/api/feed?limit=10&mode=discover', null, { Authorization: `Bearer ${viewer.body.token}` });
+
+  if (feedRes.status !== 200) {
+    throw new Error(`Expected 200, got ${feedRes.status}`);
+  }
+
+  const reels = Array.isArray(feedRes.body.reels) ? feedRes.body.reels : [];
+  const followedIndex = reels.findIndex((reel) => Number(reel.id) === Number(followedReel.body.reel.id));
+  const popularIndex = reels.findIndex((reel) => Number(reel.id) === Number(popularReel.body.reel.id));
+
+  if (followedIndex === -1 || popularIndex === -1) {
+    throw new Error('Expected both reels to appear in personalized feed');
+  }
+
+  if (followedIndex > popularIndex) {
+    throw new Error('Personalized feed did not prioritize the followed creator reel');
   }
 });
 

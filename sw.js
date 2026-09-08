@@ -1,19 +1,8 @@
-const CACHE_NAME = 'kadrio-shell-v20260902';
-const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css?v=20260902',
-  '/app.js?v=20260902',
-  '/manifest.webmanifest?v=20260902',
-  '/kadrio-icon.svg',
-  '/kadrio-shopier-product.png'
-];
+const CACHE_NAME = 'kadrio-shell-v20260942';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .then(() => self.skipWaiting())
+    self.skipWaiting()
   );
 });
 
@@ -36,14 +25,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (request.mode === 'navigate' || url.pathname === '/') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         return response;
-      });
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
