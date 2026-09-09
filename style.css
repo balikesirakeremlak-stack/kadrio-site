@@ -2451,6 +2451,15 @@ body.feed-mode .reel-card {
   border-radius: 0;
   scroll-snap-align: start;
   background: #090d10;
+  transition: background-color 240ms ease, transform 320ms ease;
+}
+
+body.feed-mode .reel-card:not(.is-active) {
+  transform: scale(0.985);
+}
+
+body.feed-mode .reel-card.is-active {
+  transform: scale(1);
 }
 
 body.feed-mode .reel-card.shared-reel-focus {
@@ -2492,6 +2501,15 @@ body.feed-mode .reel-card .reel-video video {
   aspect-ratio: auto;
   object-fit: cover;
   cursor: pointer;
+  opacity: 0.62;
+  transform: scale(1.035);
+  transition: opacity 320ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+body.feed-mode .reel-card .reel-video video.is-active {
+  opacity: 1;
+  transform: scale(1);
 }
 
 body.feed-mode .reel-card .reel-video::after {

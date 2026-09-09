@@ -552,14 +552,25 @@ async function renderFeed(nextMode = feedMode, append = false) {
 
     const videoObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
+        const card = entry.target.closest('.reel-card');
         if (entry.isIntersecting) {
+          document.querySelectorAll('.reel-card.is-active').forEach((activeCard) => {
+            if (activeCard !== card) activeCard.classList.remove('is-active');
+          });
+          document.querySelectorAll('.reel-video video.is-active').forEach((activeVideo) => {
+            if (activeVideo !== entry.target) {
+              activeVideo.pause();
+              activeVideo.classList.remove('is-active');
+            }
+          });
+          card?.classList.add('is-active');
+          entry.target.classList.add('is-active');
           entry.target.play().catch(() => {});
-          const nextVideo = entry.target.closest('.reel-card')?.nextElementSibling?.querySelector('video');
+          const nextVideo = card?.nextElementSibling?.querySelector('video');
           if (nextVideo && nextVideo.preload !== 'auto') {
             nextVideo.preload = 'auto';
             nextVideo.load();
           }
-          const card = entry.target.closest('.reel-card');
           const reelId = card?.dataset.reelId;
           const viewKey = `kadrio-view-${reelId}`;
           if (reelId && !sessionStorage.getItem(viewKey)) {
@@ -567,7 +578,11 @@ async function renderFeed(nextMode = feedMode, append = false) {
             fetchJson(`/api/reel/${reelId}/view`, { method: 'POST' }).catch(() => sessionStorage.removeItem(viewKey));
           }
         }
-        else entry.target.pause();
+        else {
+          entry.target.pause();
+          entry.target.classList.remove('is-active');
+          card?.classList.remove('is-active');
+        }
       });
     }, { threshold: 0.65 });
     document.querySelectorAll('.reel-video video').forEach((video) => videoObserver.observe(video));
@@ -1740,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260949').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260950').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }

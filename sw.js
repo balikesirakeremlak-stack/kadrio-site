@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kadrio-shell-v20260949';
+const CACHE_NAME = 'kadrio-shell-v20260950';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
