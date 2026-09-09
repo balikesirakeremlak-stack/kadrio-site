@@ -1703,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const uploadedReelId = uploadResult?.reel?.id;
         alert(isPending
           ? 'Reel yüklendi ve moderasyon incelemesine alındı. Onaylandıktan sonra akışta görünecek.'
-          : 'Reel başarıyla yüklendi ve akışa eklendi.');
+          : 'Reel profilinize kaydedildi ve akışa alındı.');
         reelForm.reset();
         if (videoPreview) {
           if (videoPreview.dataset.objectUrl) URL.revokeObjectURL(videoPreview.dataset.objectUrl);
@@ -1781,7 +1781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260953').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260954').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
