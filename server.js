@@ -1034,8 +1034,16 @@ app.put('/admin/reel/:reelId/status', requireAdmin, async (req, res) => {
   const { status } = req.body;
   if (!['pending', 'published', 'rejected'].includes(status)) return res.status(400).json({ error: 'invalid reel status' });
   try {
+    const reelRows = await allDb('SELECT userId, title FROM reels WHERE id = ?', [req.params.reelId]);
+    if (!reelRows.length) return res.status(404).json({ error: 'reel not found' });
     const result = await runDb('UPDATE reels SET status = ? WHERE id = ?', [status, req.params.reelId]);
     if (!result.changes) return res.status(404).json({ error: 'reel not found' });
+    const statusMessage = status === 'published'
+      ? `"${reelRows[0].title}" adlı reelin yayınlandı.`
+      : status === 'rejected'
+        ? `"${reelRows[0].title}" adlı reelin yayın için onaylanmadı.`
+        : `"${reelRows[0].title}" adlı reelin yeniden incelemeye alındı.`;
+    await createNotification(reelRows[0].userId, null, 'moderation', statusMessage, req.params.reelId);
     res.json({ success: true, status });
   } catch (error) { res.status(500).json({ error: 'reel status update failed' }); }
 });
