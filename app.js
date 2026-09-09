@@ -325,7 +325,14 @@ document.querySelectorAll('.modal').forEach((modal) => {
 // === PAGE RENDERING ===
 async function renderFeed(nextMode = feedMode, append = false) {
   if (feedLoading || (append && !feedHasMore)) return;
-  const previousFeedScrollTop = append ? document.querySelector('.feed')?.scrollTop || 0 : 0;
+  const existingFeed = append ? document.querySelector('.feed') : null;
+  const activeVideo = existingFeed?.querySelector('.reel-card.is-active video, video.is-active');
+  const preservedPlayback = activeVideo ? {
+    reelId: activeVideo.closest('.reel-card')?.dataset.reelId || '',
+    currentTime: activeVideo.currentTime || 0,
+    wasPlaying: !activeVideo.paused
+  } : null;
+  const previousFeedScrollTop = existingFeed?.scrollTop || 0;
   if (!append) {
     feedMode = nextMode;
     feedOffset = 0;
@@ -500,6 +507,16 @@ async function renderFeed(nextMode = feedMode, append = false) {
     if (feedElement) {
       if (append) feedElement.scrollTop = previousFeedScrollTop;
       feedElement.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
+    }
+
+    if (append && preservedPlayback?.reelId) {
+      const restoredVideo = pageBody.querySelector(`.reel-card[data-reel-id="${CSS.escape(preservedPlayback.reelId)}"] video`);
+      if (restoredVideo) {
+        restoredVideo.currentTime = preservedPlayback.currentTime;
+        restoredVideo.classList.add('is-active');
+        restoredVideo.closest('.reel-card')?.classList.add('is-active');
+        if (preservedPlayback.wasPlaying) restoredVideo.play().catch(() => {});
+      }
     }
 
     document.querySelectorAll('.feed-tab').forEach((button) => {
@@ -1755,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260951').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260952').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
