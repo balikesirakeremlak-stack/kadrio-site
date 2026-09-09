@@ -324,6 +324,7 @@ document.querySelectorAll('.modal').forEach((modal) => {
 // === PAGE RENDERING ===
 async function renderFeed(nextMode = feedMode, append = false) {
   if (feedLoading || (append && !feedHasMore)) return;
+  const previousFeedScrollTop = append ? document.querySelector('.feed')?.scrollTop || 0 : 0;
   if (!append) {
     feedMode = nextMode;
     feedOffset = 0;
@@ -483,6 +484,12 @@ async function renderFeed(nextMode = feedMode, append = false) {
         </div>`}
       </div>
     `).join('')}</section>`;
+
+    const feedElement = pageBody.querySelector('.feed');
+    if (feedElement) {
+      if (append) feedElement.scrollTop = previousFeedScrollTop;
+      feedElement.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
+    }
 
     document.querySelectorAll('.feed-tab').forEach((button) => {
       button.addEventListener('click', () => {
@@ -1317,12 +1324,14 @@ function startFeedAutoRefresh() {
   }, 30_000);
 }
 
-function loadMoreFeedOnScroll() {
+function loadMoreFeedOnScroll(event) {
   if (!document.body.classList.contains('feed-mode') || feedLoading || !feedHasMore) return;
-  const cards = document.querySelectorAll('.reel-card');
+  const feedElement = event?.currentTarget || document.querySelector('.feed');
+  if (!feedElement) return;
+  const cards = feedElement.querySelectorAll('.reel-card');
   const lastCard = cards[cards.length - 1];
   if (!lastCard) return;
-  if (lastCard.getBoundingClientRect().bottom <= window.innerHeight * 1.8) {
+  if (feedElement.scrollTop + feedElement.clientHeight >= feedElement.scrollHeight - feedElement.clientHeight * 0.8) {
     renderFeed(feedMode, true).catch(() => {});
   }
 }
@@ -1348,7 +1357,6 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('kadrio-install-dismissed', '1');
     installBanner?.classList.add('hidden');
   });
-  window.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
   const queryParams = new URLSearchParams(window.location.search);
   const source = queryParams.get('utm_source');
   const campaign = queryParams.get('utm_campaign');
