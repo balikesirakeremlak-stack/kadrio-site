@@ -274,7 +274,7 @@ function uploadReelWithProgress(body, onProgress) {
           tryUpload(index + 1);
         }
       });
-      request.timeout = 120000;
+      request.timeout = 180000;
       request.send(body);
     };
 
@@ -946,8 +946,14 @@ async function renderCreatorPage() {
       document.getElementById('stat-rejected').textContent = statusCounts.rejected;
       document.querySelectorAll('.delete-reel-btn').forEach((button) => button.addEventListener('click', async () => {
         if (!confirm('Bu reeli silmek istediğine emin misin?')) return;
-        await fetchJson(`/api/reel/${button.dataset.reelId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) });
-        renderCreatorPage();
+        button.disabled = true;
+        try {
+          await fetchJson(`/api/reel/${button.dataset.reelId}`, { method: 'DELETE' });
+          await renderCreatorPage();
+        } catch (error) {
+          button.disabled = false;
+          alert(error.message || 'Reel silinemedi.');
+        }
       }));
       document.querySelectorAll('.edit-reel-btn').forEach((button) => button.addEventListener('click', async () => {
         const reel = reels.find((item) => String(item.id) === button.dataset.reelId);
@@ -1734,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260947').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260948').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }

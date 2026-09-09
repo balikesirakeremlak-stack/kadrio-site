@@ -225,7 +225,7 @@ function moderateReelContent({ title = '', description = '', tags = '', videoUrl
 }
 
 function validateVideoUrl(videoUrl) {
-  if (typeof videoUrl === 'string' && /^\/uploads\/[a-zA-Z0-9-]+\.(mp4|webm|ogg|mov|m4v)$/i.test(videoUrl)) return true;
+  if (typeof videoUrl === 'string' && /^\/uploads\/[a-zA-Z0-9-]+\.(mp4|webm|ogg|mov|m4v|mpeg|mpg|avi|wmv|3gp)$/i.test(videoUrl)) return true;
   try {
     const parsed = new URL(videoUrl);
     return parsed.protocol === 'https:' && videoUrl.length <= 2048;
@@ -1303,9 +1303,7 @@ app.put('/api/reel/:reelId', requireUser, async (req, res) => {
 
 app.delete('/api/reel/:reelId', requireUser, async (req, res) => {
   const { reelId } = req.params;
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId required' });
-  if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
+  const userId = req.userId;
   try {
     const rows = await allDb('SELECT videoUrl FROM reels WHERE id = ? AND userId = ?', [reelId, userId]);
     await runDb('DELETE FROM reel_likes WHERE reelId = ?', [reelId]);
