@@ -1700,6 +1700,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (progressLabel) progressLabel.textContent = `${percent}%`;
         });
         const isPending = uploadResult?.moderation === 'pending' || uploadResult?.reel?.status === 'pending';
+        const uploadedReelId = uploadResult?.reel?.id;
         alert(isPending
           ? 'Reel yüklendi ve moderasyon incelemesine alındı. Onaylandıktan sonra akışta görünecek.'
           : 'Reel başarıyla yüklendi ve akışa eklendi.');
@@ -1711,7 +1712,15 @@ document.addEventListener('DOMContentLoaded', () => {
           videoPreview.classList.add('hidden');
         }
         closeModal('reel-upload-modal');
-        renderFeed();
+        if (isPending) {
+          renderProfilePage(user.id);
+        } else if (uploadedReelId) {
+          pendingSharedReelId = String(uploadedReelId);
+          feedSignature = '';
+          renderFeed().then(() => focusSharedReel(uploadedReelId)).catch(() => {});
+        } else {
+          renderFeed();
+        }
       } catch (error) {
         if (uploadError) {
           uploadError.textContent = error.message || 'Video yüklenemedi.';
@@ -1772,7 +1781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260952').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260953').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
