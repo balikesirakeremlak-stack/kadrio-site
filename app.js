@@ -1203,13 +1203,12 @@ async function renderAdminPage() {
     }
     
     try {
-      const [status, analyticsData, moderation, creators, packages, boostRequests, reports] = await Promise.all([
+      const [status, analyticsData, moderation, creators, packages, reports] = await Promise.all([
         fetchJson('/api/status'),
         fetchJson('/admin/analytics', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/reels?status=pending', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/creators', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/packages', { headers: { 'x-admin-token': activeToken } }),
-        fetchJson('/admin/boost-requests', { headers: { 'x-admin-token': activeToken } }),
         fetchJson('/admin/reports', { headers: { 'x-admin-token': activeToken } })
       ]);
 
@@ -1253,14 +1252,7 @@ async function renderAdminPage() {
         ? pkgRows.map(p => `<li><strong>${p.company}</strong><small>${p.status}</small></li>`).join('')
         : '<li>Veri yok</li>';
 
-      const boostRows = boostRequests.boostRequests || [];
-      document.getElementById('admin-boost-requests').innerHTML = boostRows.length
-        ? boostRows.map(b => `<li class="report-row"><strong>${b.username} · Reel #${b.reelId}</strong><small>${b.reelTitle} · ${b.packageName} · ${b.amount} TL · ${b.clickCount || 0}/${b.targetClicks || 100} tıklama · ${b.status}</small><button class="boost-status-btn" data-request-id="${b.id}" data-status="active">Aktifleştir</button><button class="boost-status-btn" data-request-id="${b.id}" data-status="rejected">Reddet</button></li>`).join('')
-        : '<li>Bekleyen öne çıkarma talebi yok</li>';
-      document.querySelectorAll('.boost-status-btn').forEach((button) => button.addEventListener('click', async () => {
-        await fetchJson(`/admin/boost-request/${button.dataset.requestId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-admin-token': activeToken }, body: JSON.stringify({ status: button.dataset.status }) });
-        loadData();
-      }));
+      document.getElementById('admin-boost-requests').innerHTML = '<li>Öne çıkarma talepleri henüz etkin değil.</li>';
 
       const reportRows = reports.reports || [];
       document.getElementById('admin-reports').innerHTML = reportRows.length
