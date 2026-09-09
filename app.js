@@ -18,6 +18,7 @@ let feedOffset = 0;
 let feedItems = [];
 let feedHasMore = true;
 let feedLoading = false;
+let pendingSharedReelId = '';
 const feedPageSize = 20;
 
 const FALLBACK_API_BASE = 'https://web-production-8f78b.up.railway.app';
@@ -354,6 +355,16 @@ async function renderFeed(nextMode = feedMode, append = false) {
     console.warn('Live feed unavailable; falling back to demo reels.', error);
     reels = getDemoReels();
     usedDemoFeed = true;
+  }
+
+  if (!append && pendingSharedReelId && !reels.some((reel) => String(reel.id) === pendingSharedReelId)) {
+    try {
+      const { reel } = await fetchJson(`/api/reel/${encodeURIComponent(pendingSharedReelId)}`);
+      if (reel?.id) reels = [reel, ...reels];
+    } catch (error) {
+      console.warn('Paylaşılan reel yüklenemedi:', error);
+    }
+    pendingSharedReelId = '';
   }
 
   if (requestId !== feedRequestId) {
@@ -1361,6 +1372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     installBanner?.classList.add('hidden');
   });
   const queryParams = new URLSearchParams(window.location.search);
+  pendingSharedReelId = queryParams.get('reel')?.trim() || '';
   const source = queryParams.get('utm_source');
   const campaign = queryParams.get('utm_campaign');
   const attributionKey = `kadrio-attribution-${source || 'direct'}-${campaign || 'none'}`;
@@ -1717,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260944').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260945').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
