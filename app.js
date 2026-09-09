@@ -1324,6 +1324,15 @@ function startFeedAutoRefresh() {
   }, 30_000);
 }
 
+function focusSharedReel(reelId) {
+  if (!reelId) return;
+  const targetCard = document.querySelector(`.reel-card[data-reel-id="${CSS.escape(String(reelId))}"]`);
+  if (!targetCard) return;
+  targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  targetCard.classList.add('shared-reel-focus');
+  window.setTimeout(() => targetCard.classList.remove('shared-reel-focus'), 1800);
+}
+
 function loadMoreFeedOnScroll(event) {
   if (!document.body.classList.contains('feed-mode') || feedLoading || !feedHasMore) return;
   const feedElement = event?.currentTarget || document.querySelector('.feed');
@@ -1377,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (searchInput) searchInput.value = initialQuery;
       renderSearch(initialQuery);
     } else {
-      renderFeed();
+      renderFeed().then(() => focusSharedReel(queryParams.get('reel'))).catch(() => {});
     }
     startFeedAutoRefresh();
   });
