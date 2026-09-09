@@ -1310,7 +1310,9 @@ function startFeedAutoRefresh() {
   if (feedRefreshTimer) clearInterval(feedRefreshTimer);
   feedRefreshTimer = setInterval(() => {
     const feedPageActive = document.body.classList.contains('feed-mode') || document.body.classList.contains('empty-mode');
-    if (document.visibilityState === 'visible' && feedPageActive) {
+    const feedElement = document.querySelector('.feed');
+    const isAtFeedTop = !feedElement || feedElement.scrollTop < 24;
+    if (document.visibilityState === 'visible' && feedPageActive && isAtFeedTop && !feedLoading) {
       renderFeed().catch(() => {});
     }
   }, 30_000);
