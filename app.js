@@ -929,14 +929,27 @@ async function renderCreatorPage() {
         <span class="creator-section-tag">${user.username}</span>
       </div>
       <div id="creator-reels" class="creator-reel-grid"></div>
+      <div class="creator-section-header saved-section-header">
+        <h3>Kaydedilenler</h3>
+        <span class="creator-section-tag">Daha sonra izle</span>
+      </div>
+      <div id="saved-reels" class="creator-reel-grid saved-reel-grid"></div>
     </section>
   `;
   document.getElementById('upload-reel-btn').addEventListener('click', () => openModal('reel-upload-modal'));
   document.getElementById('package-request-btn')?.addEventListener('click', () => openModal('package-modal'));
   document.getElementById('creator-checkout-btn')?.addEventListener('click', goToCheckout);
   try {
-    const { reels, followerCount = 0, followingCount = 0 } = await fetchJson(`/api/reels/user/${user.id}`);
+    const [{ reels, followerCount = 0, followingCount = 0 }, savedData] = await Promise.all([
+      fetchJson(`/api/reels/user/${user.id}`),
+      fetchJson(`/api/user/${user.id}/saved-reels`)
+    ]);
     const reelDiv = document.getElementById('creator-reels');
+    const savedDiv = document.getElementById('saved-reels');
+    const savedReels = savedData.reels || [];
+    savedDiv.innerHTML = savedReels.length
+      ? savedReels.map((reel) => `<article class="creator-reel-card saved-reel-card"><div class="creator-reel-media"><video src="${escapeHtml(reel.videoUrl)}" controls preload="metadata"></video></div><div class="creator-reel-body"><div class="creator-reel-topline"><h5>${escapeHtml(reel.title)}</h5><span class="creator-status published">Kaydedildi</span></div><div class="creator-reel-meta"><span>@${escapeHtml(reel.username || 'creator')}</span><span>❤️ ${reel.likeCount || reel.likes || 0}</span></div></div></article>`).join('')
+      : '<p class="saved-empty">Henüz kaydettiğin reel yok.</p>';
     const statusCounts = { published: 0, pending: 0, rejected: 0 };
     if (reels && reels.length) {
       let tl=0, tv=0;
@@ -1781,7 +1794,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260954').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260955').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }

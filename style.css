@@ -1044,6 +1044,24 @@ body.feed-mode .nav-item.active .nav-icon {
   gap: 16px;
 }
 
+.saved-section-header {
+  margin-top: 28px;
+}
+
+.saved-reel-card .creator-reel-media {
+  aspect-ratio: 9 / 16;
+}
+
+.saved-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 28px;
+  border: 1px dashed rgba(255,255,255,0.14);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
 .creator-reel-card {
   overflow: hidden;
   border-radius: 18px;
