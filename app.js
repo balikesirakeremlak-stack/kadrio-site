@@ -1395,7 +1395,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (searchInput) searchInput.value = initialQuery;
       renderSearch(initialQuery);
     } else {
-      renderFeed().then(() => focusSharedReel(queryParams.get('reel'))).catch(() => {});
+      const sharedReelId = queryParams.get('reel');
+      renderFeed().then(() => focusSharedReel(sharedReelId)).catch(() => {});
+      if (sharedReelId) window.setTimeout(() => focusSharedReel(sharedReelId), 1200);
     }
     startFeedAutoRefresh();
   });
@@ -1732,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260946').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260947').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
