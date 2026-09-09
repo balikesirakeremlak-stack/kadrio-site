@@ -1755,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260950').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260951').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }

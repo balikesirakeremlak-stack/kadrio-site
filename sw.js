@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kadrio-shell-v20260950';
+const CACHE_NAME = 'kadrio-shell-v20260951';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -21,6 +21,11 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  if (url.pathname.startsWith('/uploads/')) {
     event.respondWith(fetch(request));
     return;
   }
