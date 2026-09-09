@@ -233,11 +233,11 @@ function uploadReelWithProgress(body, onProgress) {
     let finalError = null;
 
     const tryUpload = (index) => {
-      const base = API_BASE_CANDIDATES[index];
-      if (!base) {
+      if (index >= API_BASE_CANDIDATES.length) {
         reject(finalError || new Error('Ağ bağlantısı kesildi.'));
         return;
       }
+      const base = API_BASE_CANDIDATES[index];
 
       const request = new XMLHttpRequest();
       request.open('POST', `${base}/api/reel`);
@@ -1740,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260948').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260949').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
