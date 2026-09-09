@@ -1723,7 +1723,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260943').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260944').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
