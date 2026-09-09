@@ -1329,10 +1329,13 @@ function startFeedAutoRefresh() {
   }, 30_000);
 }
 
-function focusSharedReel(reelId) {
+function focusSharedReel(reelId, attempt = 0) {
   if (!reelId) return;
   const targetCard = document.querySelector(`.reel-card[data-reel-id="${CSS.escape(String(reelId))}"]`);
-  if (!targetCard) return;
+  if (!targetCard) {
+    if (attempt < 12) window.setTimeout(() => focusSharedReel(reelId, attempt + 1), 150);
+    return;
+  }
   targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   targetCard.classList.add('shared-reel-focus');
   window.setTimeout(() => targetCard.classList.remove('shared-reel-focus'), 1800);
@@ -1729,7 +1732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
 
-    navigator.serviceWorker.register('/sw.js?v=20260945').catch((error) => {
+    navigator.serviceWorker.register('/sw.js?v=20260946').catch((error) => {
       console.warn('Service worker kaydedilemedi:', error);
     });
   }
