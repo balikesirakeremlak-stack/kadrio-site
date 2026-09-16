@@ -2186,9 +2186,7 @@ body.feed-mode .nav-item.active .nav-icon {
 
   /* Keep the mobile feed focused on the video rather than stacked chrome. */
   body.feed-mode .top-bar {
-    height: 58px;
-    padding: 8px 10px;
-    background: rgba(5, 5, 5, 0.78);
+    display: none;
   }
 
   body.feed-mode .brand {
@@ -2214,13 +2212,14 @@ body.feed-mode .nav-item.active .nav-icon {
   }
 
   body.feed-mode .feed-tabs {
-    top: 62px;
+    top: 16px;
     gap: 16px;
     font-size: 0.84rem;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
   }
 
   body.feed-mode .reel-card .reel-header {
-    top: 96px;
+    top: 48px;
     left: 10px;
     right: 10px;
     padding: 6px 8px;
