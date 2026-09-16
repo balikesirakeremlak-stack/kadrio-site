@@ -1086,12 +1086,23 @@ async function renderProfilePage(profileUserId) {
           <h3>Reeller</h3>
           <span class="profile-muted">Yayınlanan içerik</span>
         </div>
-        <div class="profile-reels">${reels.length ? reels.map((reel) => `<article class="profile-reel"><video src="${reel.videoUrl}" controls></video><strong>${reel.title}</strong></article>`).join('') : '<p class="muted">Henüz yayınlanmış reel yok.</p>'}</div>
+        <div class="profile-reels">${reels.length ? reels.map((reel) => `<article class="profile-reel" data-reel-id="${reel.id}"><video src="${reel.videoUrl}" controls></video><strong>${escapeHtml(reel.title)}</strong>${user && String(user.id) === String(creator.id) ? `<button class="profile-delete-reel-btn secondary-button" data-reel-id="${reel.id}" type="button">Sil</button>` : ''}</article>`).join('') : '<p class="muted">Henüz yayınlanmış reel yok.</p>'}</div>
         ${user ? '<div id="saved-reels-section" class="saved-reels-section hidden"><h3>Kaydedilenler</h3><div id="saved-reels" class="profile-reels"></div></div>' : ''}
         ${user ? '<div id="history-section" class="saved-reels-section hidden"><h3>İzleme geçmişi</h3><div id="watch-history" class="profile-reels"></div></div>' : ''}
       </section>`;
 
     if (user) {
+      document.querySelectorAll('.profile-delete-reel-btn').forEach((button) => button.addEventListener('click', async () => {
+        if (!confirm('Bu reeli silmek istediğine emin misin?')) return;
+        button.disabled = true;
+        try {
+          await fetchJson(`/api/reel/${button.dataset.reelId}`, { method: 'DELETE' });
+          await renderProfilePage(user.id);
+        } catch (error) {
+          button.disabled = false;
+          alert(error.message || 'Reel silinemedi.');
+        }
+      }));
       document.getElementById('edit-profile-btn').addEventListener('click', async () => {
         const bio = prompt('Bio:', creator.bio || '');
         if (bio === null) return;
