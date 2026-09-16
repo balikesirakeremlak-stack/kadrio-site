@@ -6,7 +6,7 @@ const heroSecondary = document.getElementById('hero-secondary-button');
 const heroCheckoutButton = document.getElementById('hero-checkout-button');
 const promoBuyButton = document.getElementById('promo-buy-button');
 const quickUploadButton = document.getElementById('quick-upload-button');
-const loginButton = document.querySelector('.text-button');
+const loginButton = document.getElementById('login-button');
 const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
 const notificationBadge = document.getElementById('notification-badge');
@@ -1490,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
   heroCheckoutButton?.addEventListener('click', goToCheckout);
   promoBuyButton?.addEventListener('click', goToCheckout);
 
-  const loginBtn = document.querySelector('.text-button');
+  const loginBtn = document.getElementById('login-button');
   loginBtn.addEventListener('click', (e) => {
     e.preventDefault();
     if (isLoggedIn()) {
