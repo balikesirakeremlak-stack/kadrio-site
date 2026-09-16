@@ -2183,6 +2183,64 @@ body.feed-mode .nav-item.active .nav-icon {
     max-height: calc(100dvh - 24px);
     padding: 18px 14px;
   }
+
+  /* Keep the mobile feed focused on the video rather than stacked chrome. */
+  body.feed-mode .top-bar {
+    height: 58px;
+    padding: 8px 10px;
+    background: rgba(5, 5, 5, 0.78);
+  }
+
+  body.feed-mode .brand {
+    font-size: 0.92rem;
+  }
+
+  body.feed-mode .brand-tag,
+  body.feed-mode .search-form,
+  body.feed-mode .feed-status,
+  body.feed-mode .install-banner {
+    display: none !important;
+  }
+
+  body.feed-mode .top-actions {
+    gap: 4px;
+  }
+
+  body.feed-mode .upload-nav-button,
+  body.feed-mode #login-button {
+    max-width: 72px;
+    padding: 8px 7px;
+    font-size: 0.68rem;
+  }
+
+  body.feed-mode .feed-tabs {
+    top: 62px;
+    gap: 16px;
+    font-size: 0.84rem;
+  }
+
+  body.feed-mode .reel-card .reel-header {
+    top: 96px;
+    left: 10px;
+    right: 10px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.34);
+  }
+
+  body.feed-mode .reel-card .reel-content {
+    bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  body.feed-mode .reel-card .reel-actions {
+    right: 10px;
+    bottom: calc(118px + env(safe-area-inset-bottom));
+    gap: 7px;
+  }
+
+  body.feed-mode .reel-card .action-btn {
+    width: 42px;
+    min-height: 42px;
+  }
 }
 
 .comment-reply {
