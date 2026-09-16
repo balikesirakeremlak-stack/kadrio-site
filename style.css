@@ -2935,6 +2935,17 @@ body.feed-mode .reel-card .comments-list {
     display: none !important;
   }
 
+  body.feed-mode .reel-card .reel-header,
+  body.feed-mode .reel-card .reel-content {
+    background: transparent !important;
+    border: 0;
+    backdrop-filter: none;
+  }
+
+  body.feed-mode .reel-card .reel-content {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+  }
+
   body.feed-mode .reel-card .reel-video::after {
     display: none !important;
   }
