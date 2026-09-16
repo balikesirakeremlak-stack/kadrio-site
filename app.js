@@ -1414,6 +1414,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const installBanner = document.getElementById('install-banner');
   const installButton = document.getElementById('install-app-button');
   const dismissInstall = document.getElementById('dismiss-install');
+  document.addEventListener('click', (event) => {
+    const dismissButton = event.target.closest('#dismiss-install');
+    if (!dismissButton) return;
+    event.preventDefault();
+    event.stopPropagation();
+    localStorage.setItem('kadrio-install-dismissed', '1');
+    document.getElementById('install-banner')?.classList.add('hidden');
+  }, true);
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
