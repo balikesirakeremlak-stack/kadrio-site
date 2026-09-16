@@ -2823,15 +2823,35 @@ body.feed-mode .reel-card .comments-list {
 }
 
 @media (max-width: 520px) {
+  body.feed-mode .feed {
+    height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+  }
+
+  body.feed-mode .reel-card {
+    height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    min-height: 0;
+  }
+
+  body.feed-mode .reel-card .reel-video,
+  body.feed-mode .reel-card .reel-video video {
+    height: 100%;
+  }
+
+  body.feed-mode .bottom-nav {
+    height: calc(76px + env(safe-area-inset-bottom));
+  }
+
   body.feed-mode .reel-card .reel-header {
-    top: 62px;
+    top: 40px;
   }
 
   body.feed-mode .sound-toggle {
-    top: 86px;
+    top: 72px;
   }
 
   body.feed-mode .reel-card .reel-content {
+    bottom: 18px;
     right: 72px;
     left: 12px;
     padding: 12px 13px;
@@ -2839,5 +2859,9 @@ body.feed-mode .reel-card .comments-list {
 
   body.feed-mode .reel-card .reel-content h3 {
     font-size: 1.18rem;
+  }
+
+  body.feed-mode .reel-card .reel-actions {
+    bottom: 72px;
   }
 }
