@@ -2516,6 +2516,7 @@ body.feed-mode .feed {
   overscroll-behavior-y: contain;
   scrollbar-width: none;
   scroll-snap-type: y mandatory;
+  scroll-snap-stop: always;
 }
 
 body.feed-mode .feed-status {
@@ -2588,16 +2589,18 @@ body.feed-mode .reel-card {
   border: 0;
   border-radius: 0;
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   background: #090d10;
-  transition: background-color 240ms ease, transform 320ms ease;
+  overflow: hidden;
 }
 
 body.feed-mode .reel-card:not(.is-active) {
-  transform: scale(0.985);
+  transform: none;
 }
 
 body.feed-mode .reel-card.is-active {
-  transform: scale(1);
+  z-index: 2;
+  transform: none;
 }
 
 body.feed-mode .reel-card.shared-reel-focus {
