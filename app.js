@@ -496,6 +496,7 @@ async function renderFeed(nextMode = feedMode, append = false) {
             <span class="icon">${uiIcon('bookmark')}</span>
           </button>
           <button class="action-btn report-btn" data-reel-id="${reel.id}" ${reel.demo ? 'disabled' : ''} aria-label="Bildir">${uiIcon('flag')}</button>
+          ${currentUser && String(currentUser.id) === String(reel.userId) ? `<button class="action-btn feed-delete-btn" data-reel-id="${reel.id}" type="button" aria-label="Reeli sil">×</button>` : ''}
         </div>
         ${reel.demo ? '' : `<div class="comments-panel" data-comments-for="${reel.id}">
           <div class="comments-list"><span class="muted">Yorumlar yükleniyor...</span></div>
@@ -739,6 +740,20 @@ async function renderFeed(nextMode = feedMode, append = false) {
       if (!reason?.trim()) return;
       await fetchJson('/api/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reporterId: user.id, reelId: button.dataset.reelId, reason: reason.trim() }) });
       alert('Bildirimin alındı.');
+    }));
+
+    document.querySelectorAll('.feed-delete-btn').forEach((button) => button.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      if (!confirm('Bu reeli silmek istediğine emin misin?')) return;
+      button.disabled = true;
+      try {
+        await fetchJson(`/api/reel/${button.dataset.reelId}`, { method: 'DELETE' });
+        feedSignature = '';
+        await renderFeed(feedMode);
+      } catch (error) {
+        button.disabled = false;
+        alert(error.message || 'Reel silinemedi.');
+      }
     }));
 
     document.querySelectorAll('.share-btn').forEach((button) => button.addEventListener('click', async () => {
