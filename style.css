@@ -2954,4 +2954,13 @@ body.feed-mode .reel-card .comments-list {
     right: 70px !important;
     z-index: 10 !important;
   }
+
+  body.feed-mode .reel-card .reel-header {
+    pointer-events: none;
+  }
+
+  body.feed-mode .reel-card .reel-header button,
+  body.feed-mode .reel-card .reel-header a {
+    pointer-events: auto;
+  }
 }
