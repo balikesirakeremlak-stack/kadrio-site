@@ -558,7 +558,7 @@ async function renderFeed(nextMode = feedMode, append = false) {
     });
 
     document.querySelectorAll('.sound-toggle').forEach((button) => {
-      button.addEventListener('click', (event) => {
+      button.addEventListener('click', async (event) => {
         event.stopPropagation();
         const video = button.closest('.reel-video')?.querySelector('video');
         if (!video) return;
@@ -566,7 +566,22 @@ async function renderFeed(nextMode = feedMode, append = false) {
         document.querySelectorAll('.reel-video video').forEach((item) => { item.muted = true; });
         video.muted = muted;
         feedAudioEnabled = !muted;
-        if (!muted) video.play().catch(() => {});
+        video.defaultMuted = muted;
+        video.volume = muted ? 0 : 1;
+        if (!muted) {
+          try {
+            await video.play();
+          } catch (error) {
+            feedAudioEnabled = false;
+            video.muted = true;
+            video.volume = 0;
+            button.setAttribute('aria-label', 'Sesi aç');
+            button.setAttribute('aria-pressed', 'false');
+            button.querySelector('.sound-icon').textContent = '⌁';
+            console.warn('Video sesi açılamadı:', error.message);
+            return;
+          }
+        }
         button.setAttribute('aria-pressed', String(!muted));
         button.setAttribute('aria-label', muted ? 'Sesi aç' : 'Sesi kapat');
         button.querySelector('.sound-icon').textContent = muted ? '⌁' : '◖';
