@@ -1420,23 +1420,36 @@ document.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     event.stopPropagation();
     localStorage.setItem('kadrio-install-dismissed', '1');
-    document.getElementById('install-banner')?.classList.add('hidden');
+    const banner = document.getElementById('install-banner');
+    if (banner) {
+      banner.classList.add('hidden');
+      banner.style.display = 'none';
+    }
   }, true);
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
-    if (!localStorage.getItem('kadrio-install-dismissed')) installBanner?.classList.remove('hidden');
+    if (!localStorage.getItem('kadrio-install-dismissed') && installBanner) {
+      installBanner.classList.remove('hidden');
+      installBanner.style.display = 'flex';
+    }
   });
   installButton?.addEventListener('click', async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
     await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
-    installBanner?.classList.add('hidden');
+    if (installBanner) {
+      installBanner.classList.add('hidden');
+      installBanner.style.display = 'none';
+    }
   });
   dismissInstall?.addEventListener('click', () => {
     localStorage.setItem('kadrio-install-dismissed', '1');
-    installBanner?.classList.add('hidden');
+    if (installBanner) {
+      installBanner.classList.add('hidden');
+      installBanner.style.display = 'none';
+    }
   });
   const queryParams = new URLSearchParams(window.location.search);
   pendingSharedReelId = queryParams.get('reel')?.trim() || '';
