@@ -2913,6 +2913,7 @@ body.feed-mode .reel-card .comments-list {
     height: calc(100dvh - 76px - env(safe-area-inset-bottom)) !important;
     min-height: 0 !important;
     max-height: calc(100dvh - 76px - env(safe-area-inset-bottom)) !important;
+    flex: 0 0 calc(100dvh - 76px - env(safe-area-inset-bottom)) !important;
   }
 
   body.feed-mode .reel-card .reel-video,
