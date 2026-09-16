@@ -2952,6 +2952,7 @@ body.feed-mode .reel-card .comments-list {
 
   body.feed-mode .sound-toggle {
     right: 70px !important;
+    top: 142px !important;
     z-index: 10 !important;
   }
 
