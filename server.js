@@ -180,6 +180,7 @@ async function normalizeUploadedVideo(file) {
   try {
     await execFileAsync('ffmpeg', [
       '-y', '-i', file.path,
+      '-map', '0:v:0', '-map', '0:a:0', '-shortest',
       '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
       '-pix_fmt', 'yuv420p',
       '-c:a', 'aac', '-b:a', '128k',
