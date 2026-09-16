@@ -1313,6 +1313,10 @@ app.delete('/api/reel/:reelId', requireUser, async (req, res) => {
     const rows = await allDb('SELECT videoUrl FROM reels WHERE id = ? AND userId = ?', [reelId, userId]);
     await runDb('DELETE FROM reel_likes WHERE reelId = ?', [reelId]);
     await runDb('DELETE FROM reel_comments WHERE reelId = ?', [reelId]);
+    await runDb('DELETE FROM saved_reels WHERE reelId = ?', [reelId]);
+    await runDb('DELETE FROM watch_history WHERE reelId = ?', [reelId]);
+    await runDb('DELETE FROM notifications WHERE reelId = ?', [reelId]);
+    await runDb('DELETE FROM reports WHERE reelId = ?', [reelId]);
     const result = await runDb('DELETE FROM reels WHERE id = ? AND userId = ?', [reelId, userId]);
     if (!result.changes) return res.status(404).json({ error: 'reel not found or unauthorized' });
     if (rows[0]?.videoUrl?.startsWith('/uploads/')) {
