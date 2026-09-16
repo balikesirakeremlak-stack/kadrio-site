@@ -509,7 +509,7 @@ async function renderFeed(nextMode = feedMode, append = false) {
     const feedElement = pageBody.querySelector('.feed');
     if (feedElement) {
       if (append) feedElement.scrollTop = previousFeedScrollTop;
-      feedElement.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
+      if (!append) feedElement.addEventListener('scroll', loadMoreFeedOnScroll, { passive: true });
     }
 
     if (append && preservedPlayback?.reelId) {
