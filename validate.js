@@ -93,6 +93,27 @@ test('Server is running', async () => {
   if (!res.body || res.body.status !== 'ok') throw new Error('Health check failed');
 });
 
+test('Production web origin passes CORS preflight', async () => {
+  const res = await request('OPTIONS', '/api/feed', null, {
+    Origin: 'https://www.kadrio.co',
+    'Access-Control-Request-Method': 'GET',
+    'Access-Control-Request-Headers': 'authorization'
+  });
+  if (res.status !== 204) throw new Error(`Expected 204, got ${res.status}`);
+  if (res.headers['access-control-allow-origin'] !== 'https://www.kadrio.co') {
+    throw new Error('Production CORS origin is not allowed');
+  }
+});
+
+test('Feed never returns fake demo fallback data', async () => {
+  const res = await request('GET', '/api/feed?limit=20&offset=0&mode=discover');
+  if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
+  if (!Array.isArray(res.body?.reels)) throw new Error('Feed response is invalid');
+  if (res.body.reels.some((reel) => reel.username === 'reeloram')) {
+    throw new Error('Fake demo fallback reel returned');
+  }
+});
+
 test('Database connection works', async () => {
   const res = await request('GET', '/health');
   if (res.body.database !== 'ok') throw new Error('Database not responding');
@@ -171,6 +192,26 @@ test('User registration creates account', async () => {
   if (res.status !== 201) throw new Error(`Expected 201, got ${res.status}`);
   if (!res.body.token) throw new Error('No session token returned');
   if (!res.body.user || !res.body.user.id) throw new Error('No user ID returned');
+});
+
+test('Owner can delete an uploaded reel', async () => {
+  const suffix = Date.now();
+  const registration = await request('POST', '/api/user/register', {
+    email: `delete${suffix}@example.com`,
+    password: 'password123',
+    username: `delete${suffix}`
+  });
+  if (registration.status !== 201) throw new Error(`Registration failed with ${registration.status}`);
+  const userId = registration.body.user.id;
+  const token = registration.body.token;
+  const created = await request('POST', '/api/reel', {
+    userId,
+    title: 'Deletion regression test',
+    videoUrl: 'https://example.com/delete-test.mp4'
+  }, { Authorization: `Bearer ${token}` });
+  if (created.status !== 201) throw new Error(`Reel creation failed with ${created.status}`);
+  const deleted = await request('DELETE', `/api/reel/${created.body.reel.id}`, null, { Authorization: `Bearer ${token}` });
+  if (deleted.status !== 200 || !deleted.body?.success) throw new Error(`Expected successful deletion, got ${deleted.status}`);
 });
 
 test('Duplicate email rejected', async () => {
