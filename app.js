@@ -20,6 +20,7 @@ let feedItems = [];
 let feedHasMore = true;
 let feedLoading = false;
 let pendingSharedReelId = '';
+let feedAudioEnabled = false;
 const feedPageSize = 20;
 
 const FALLBACK_API_BASE = 'https://web-production-8f78b.up.railway.app';
@@ -467,8 +468,8 @@ async function renderFeed(nextMode = feedMode, append = false) {
         </div>
         
         <div class="reel-video">
-          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" muted loop playsinline preload="metadata"></video>
-          <button class="sound-toggle" type="button" aria-label="Sesi aç" aria-pressed="false"><span class="sound-icon" aria-hidden="true">⌁</span></button>
+          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" ${feedAudioEnabled ? '' : 'muted'} loop playsinline preload="metadata"></video>
+          <button class="sound-toggle" type="button" aria-label="${feedAudioEnabled ? 'Sesi kapat' : 'Sesi aç'}" aria-pressed="${feedAudioEnabled}"><span class="sound-icon" aria-hidden="true">${feedAudioEnabled ? '◖' : '⌁'}</span></button>
         </div>
         
         <div class="reel-content">
@@ -563,6 +564,8 @@ async function renderFeed(nextMode = feedMode, append = false) {
         const muted = !video.muted;
         document.querySelectorAll('.reel-video video').forEach((item) => { item.muted = true; });
         video.muted = muted;
+        feedAudioEnabled = !muted;
+        if (!muted) video.play().catch(() => {});
         button.setAttribute('aria-pressed', String(!muted));
         button.setAttribute('aria-label', muted ? 'Sesi aç' : 'Sesi kapat');
         button.querySelector('.sound-icon').textContent = muted ? '⌁' : '◖';
