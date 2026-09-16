@@ -5,6 +5,7 @@ const heroPrimary = document.getElementById('hero-primary-button');
 const heroSecondary = document.getElementById('hero-secondary-button');
 const heroCheckoutButton = document.getElementById('hero-checkout-button');
 const promoBuyButton = document.getElementById('promo-buy-button');
+const quickUploadButton = document.getElementById('quick-upload-button');
 const loginButton = document.querySelector('.text-button');
 const searchForm = document.getElementById('search-form');
 const searchInput = document.getElementById('search-input');
@@ -304,6 +305,10 @@ function openModal(modalId) {
   modal.classList.remove('hidden');
 }
 
+function openUploadFlow() {
+  openModal(isLoggedIn() ? 'reel-upload-modal' : 'login-modal');
+}
+
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) modal.classList.add('hidden');
@@ -423,10 +428,7 @@ async function renderFeed(nextMode = feedMode, append = false) {
           </div>
         </article>
       </section>`;
-      document.querySelector('.empty-start-button')?.addEventListener('click', () => {
-        if (isLoggedIn()) openModal('reel-upload-modal');
-        else openModal('login-modal');
-      });
+      document.querySelector('.empty-start-button')?.addEventListener('click', openUploadFlow);
       document.querySelector('.empty-promo-button')?.addEventListener('click', goToCheckout);
       document.querySelector('.invite-button')?.addEventListener('click', async () => {
         const inviteUrl = window.location.href;
@@ -1465,12 +1467,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   navButtons.forEach((btn) => {
-    btn.addEventListener('click', () => changePage(btn.dataset.page));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.page === 'uret') {
+        openUploadFlow();
+        return;
+      }
+      changePage(btn.dataset.page);
+    });
   });
+
+  quickUploadButton?.addEventListener('click', openUploadFlow);
 
   heroPrimary?.addEventListener('click', () => {
     if (isLoggedIn()) {
-      openModal('reel-upload-modal');
+      openUploadFlow();
     } else {
       openModal('login-modal');
     }

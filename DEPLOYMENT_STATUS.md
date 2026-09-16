@@ -1,7 +1,7 @@
 # Kadrio Deployment Status 🚀
 
-**Last Updated:** 2026-08-29T20:40 UTC  
-**Status:** 🟡 **95% LIVE** (Waiting for Domain Nameserver Fix)
+**Last Updated:** 2026-09-16T18:31 UTC  
+**Status:** ✅ **LIVE** (Cloudflare DNS and HTTPS verified)
 
 ---
 
@@ -19,6 +19,7 @@
 | **Database** | ✅ Mounted | Railway Volume `/data/reeloram.db` |
 | **File Storage** | ✅ Mounted | Railway Volume `/data/uploads` |
 | **Security Headers** | ✅ Applied | Cache-Control, X-Frame-Options, CSP |
+| **Public Domain** | ✅ Active | `https://www.kadrio.co/` → HTTP 200 |
 
 ### API Endpoints Tested
 
@@ -31,81 +32,37 @@
 
 ---
 
-## ❌ CRITICAL BLOCKER
+## ✅ DOMAIN STATUS
 
-### Domain Nameserver Mismatch
+### Cloudflare DNS and HTTPS
 
 ```
 ┌─────────────────────────────────────────────┐
-│ Current (Public DNS):                       │
-│ ├─ keaton.ns.cloudflare.com                │
-│ └─ natasha.ns.cloudflare.com               │
-│                                             │
-│ Required (Cloudflare Zone):                │
-│ ├─ chris.ns.cloudflare.com                 │
-│ └─ kenia.ns.cloudflare.com                 │
-│                                             │
-│ Result: DNS RESOLUTION FAILS               │
-│ https://kadrio.com → ❌ Cannot resolve     │
-│ https://www.kadrio.com → ❌ Cannot resolve│
+│ Root DNS: CNAME → Railway                  │
+│ www DNS:  CNAME → Railway                  │
+│ Root URL: 301 → https://www.kadrio.co/    │
+│ www URL:  HTTP 200                         │
 └─────────────────────────────────────────────┘
 ```
 
-**Root Cause:** Domain registered in a **different Cloudflare account** than the current dashboard.
+**Result:** Cloudflare serves the public domain and redirects the root hostname to the configured Railway-backed `www` hostname.
 
-**Current Account:** `Balikesirakeremlak@gmail.com` (has DNS zone but NOT registrar access)  
-**Registrar Account:** Unknown (holds the domain registration)
-
-**Impact:** 
-- Custom domain HTTPS inaccessible
+**Verified:**
+- `https://kadrio.co/` → HTTP 301 to `https://www.kadrio.co/`
+- `https://www.kadrio.co/` → HTTP 200
 - Railway endpoint works: `web-production-8f78b.up.railway.app` ✅
 - Shopier checkout URL works ✅
 
 ---
 
-## 🔧 RESOLUTION STEPS (Critical)
+## 🔧 DOMAIN CONFIGURATION
 
-### Step 1: Locate Registrar Account
-Find the Cloudflare account email where `kadrio.com` domain was registered:
-- Check email confirmations from 2026-02-15 (domain registration date)
-- Common patterns: primary Gmail, work email, domain email
-- If lost: Use https://domaincontact.registrar.cloudflare.com/kadrio.com (requires WHOIS authentication)
-
-### Step 2: Update Nameservers
-1. Log into the correct Cloudflare account
-2. Navigate: **Domains → Registrations → kadrio.com**
-3. Find **Nameserver Management** section
-4. Change from:
-   ```
-   keaton.ns.cloudflare.com
-   natasha.ns.cloudflare.com
-   ```
-   to:
-   ```
-   chris.ns.cloudflare.com
-   kenia.ns.cloudflare.com
-   ```
-5. Click **Save**
-
-### Step 3: Verify DNS Propagation
-Wait 5-30 minutes, then verify:
+### Verification
 ```powershell
-nslookup kadrio.com
+curl.exe -I https://kadrio.co/
+curl.exe -I https://www.kadrio.co/
 ```
-Expected output:
-```
-Non-authoritative answer:
-nameserver = chris.ns.cloudflare.com
-nameserver = kenia.ns.cloudflare.com
-```
-
-### Step 4: Test HTTPS Access
-Once NS are updated:
-```powershell
-Invoke-WebRequest -Uri "https://kadrio.com" -UseBasicParsing
-Invoke-WebRequest -Uri "https://www.kadrio.com" -UseBasicParsing
-```
-Should return HTTP 200 with Railway app content.
+Expected output is a 301 redirect for the root hostname and HTTP 200 for `www`.
 
 ---
 
@@ -113,10 +70,10 @@ Should return HTTP 200 with Railway app content.
 
 Once nameservers are corrected:
 
-### 1. Domain Validation (5 min)
-- [ ] `https://kadrio.com` loads successfully
-- [ ] SSL certificate is valid (Cloudflare auto-issued)
-- [ ] Redirect `www.kadrio.com` → `kadrio.com` works
+### 1. Domain Validation (completed)
+- [x] `https://kadrio.co` redirects to the live hostname
+- [x] SSL certificate is valid (Cloudflare)
+- [x] `https://www.kadrio.co` returns HTTP 200
 
 ### 2. Test User Flow (10 min)
 - [ ] Create test creator account via `/api/user/register`

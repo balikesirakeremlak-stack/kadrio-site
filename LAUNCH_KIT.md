@@ -4,7 +4,8 @@
 
 - Uygulama: https://web-production-8f78b.up.railway.app/
 - Shopier: https://www.shopier.com/kadrio/50337921
-- Alan adi: https://kadrio.com (DNS dogrulamasi bekliyor)
+- Alan adi: https://www.kadrio.co/ (canli, HTTP 200)
+- Koku adres: https://kadrio.co/ (301 ile www adresine yonlenir)
 
 ## Ana paylasim metni
 
