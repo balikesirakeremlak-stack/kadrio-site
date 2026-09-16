@@ -684,54 +684,10 @@ app.get('/api/reels', async (req, res) => {
     }
   } catch (error) {
     console.error('Failed to load published reels:', error.message);
+    return res.status(503).json({ error: 'reel feed temporarily unavailable' });
   }
 
-  res.json({
-    reels: [
-      {
-        id: 1,
-        user: 'reeloram',
-        avatar: 'R',
-        description: 'Yaratıcı ekiplerin içeriklerini hızlıca paylaşabileceği modern bir akış deneyimi.',
-        tags: ['#kadrio', '#reklam', '#yaratıcı'],
-        song: 'Kadrio Studio · Premium',
-        src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        likes: 2400,
-        comments: 14,
-        shares: 520,
-        views: '1.8M',
-        sponsored: true,
-      },
-      {
-        id: 2,
-        user: 'trendguru',
-        avatar: 'T',
-        description: 'İçerik yayıncıları için profesyonel keşif seçenekleri ve sponsor uyumları.',
-        tags: ['#trend', '#tasarım', '#promo'],
-        song: 'Trend Guru · Yeni Hit',
-        src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
-        likes: 1120,
-        comments: 22,
-        shares: 310,
-        views: '920K',
-        sponsored: false,
-      },
-      {
-        id: 3,
-        user: 'createkit',
-        avatar: 'C',
-        description: 'Üreticiler ve markalar için herkese açık performans desteği.',
-        tags: ['#frontend', '#ui', '#demo'],
-        song: 'Create Kit · Groove',
-        src: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        likes: 894,
-        comments: 7,
-        shares: 98,
-        views: '430K',
-        sponsored: true,
-      },
-    ],
-  });
+  res.json({ reels: [] });
 });
 
 app.post('/api/track', async (req, res) => {
