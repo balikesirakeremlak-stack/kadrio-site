@@ -190,9 +190,8 @@ async function normalizeUploadedVideo(file) {
     return { ...file, path: outputPath, filename: path.basename(outputPath), mimetype: 'video/mp4' };
   } catch (error) {
     await fs.promises.unlink(outputPath).catch(() => {});
-    const normalizationError = new Error('Video mobil oynatma için dönüştürülemedi. Lütfen MP4/AAC formatında tekrar deneyin.');
-    normalizationError.cause = error;
-    throw normalizationError;
+    console.warn('Video normalization failed; preserving original upload:', error.message);
+    return { ...file, normalizationFallback: true };
   }
 }
 
