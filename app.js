@@ -365,9 +365,10 @@ async function renderFeed(nextMode = feedMode, append = false) {
       feedLoading = false;
       return;
     }
-    console.warn('Live feed unavailable; falling back to demo reels.', error);
-    reels = getDemoReels();
-    usedDemoFeed = true;
+    feedLoading = false;
+    pageBody.innerHTML = '<section class="feed"><div class="error-state"><strong>Akış şu anda yüklenemedi.</strong><span>Bağlantı kısa süreli kesilmiş olabilir.</span><button id="feed-retry" type="button">Tekrar dene</button></div></section>';
+    document.getElementById('feed-retry')?.addEventListener('click', () => renderFeed(feedMode));
+    return;
   }
 
   if (!append && pendingSharedReelId && !reels.some((reel) => String(reel.id) === pendingSharedReelId)) {
