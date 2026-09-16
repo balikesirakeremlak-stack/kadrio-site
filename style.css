@@ -1582,6 +1582,41 @@ body.feed-mode .nav-item.active .nav-icon {
   }
 }
 
+@media (max-width: 899px) {
+  body.feed-mode .top-bar {
+    display: none;
+  }
+
+  body.feed-mode .search-form,
+  body.feed-mode .feed-status,
+  body.feed-mode .install-banner {
+    display: none !important;
+  }
+
+  body.feed-mode .feed-tabs {
+    top: 12px;
+  }
+
+  body.feed-mode .feed {
+    height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+  }
+
+  body.feed-mode .reel-card {
+    height: calc(100dvh - 76px - env(safe-area-inset-bottom));
+    min-height: 0;
+  }
+
+  body.feed-mode .reel-card .reel-video,
+  body.feed-mode .reel-card .reel-video video {
+    height: 100%;
+  }
+
+  body.feed-mode .bottom-nav {
+    height: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (min-width: 900px) {
   .content {
     width: 560px;
