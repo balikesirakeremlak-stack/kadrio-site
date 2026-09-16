@@ -189,8 +189,9 @@ async function normalizeUploadedVideo(file) {
     return { ...file, path: outputPath, filename: path.basename(outputPath), mimetype: 'video/mp4' };
   } catch (error) {
     await fs.promises.unlink(outputPath).catch(() => {});
-    console.warn('Video normalization unavailable; keeping original upload:', error.message);
-    return file;
+    const normalizationError = new Error('Video mobil oynatma için dönüştürülemedi. Lütfen MP4/AAC formatında tekrar deneyin.');
+    normalizationError.cause = error;
+    throw normalizationError;
   }
 }
 
@@ -1203,7 +1204,14 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
   }
   if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
 
-  if (req.file) req.file = await normalizeUploadedVideo(req.file);
+  if (req.file) {
+    try {
+      req.file = await normalizeUploadedVideo(req.file);
+    } catch (error) {
+      await fs.promises.unlink(req.file.path).catch(() => {});
+      return res.status(422).json({ error: error.message });
+    }
+  }
 
   const uploadedVideoUrl = req.file ? `/uploads/${req.file.filename}` : videoUrl;
   const reel = {
