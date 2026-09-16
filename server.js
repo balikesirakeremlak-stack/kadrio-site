@@ -164,7 +164,7 @@ const videoUpload = multer ? multer({
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, callback) => {
     const extension = path.extname(file.originalname || '').toLowerCase();
-    const allowedExtensions = new Set(['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp']);
+    const allowedExtensions = new Set(['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp', '.mkv', '.3g2', '.ts', '.m2ts', '.mts', '.flv', '.asf', '.f4v', '.mxf']);
     if (!file.mimetype.startsWith('video/') && !allowedExtensions.has(extension)) {
       return callback(new Error('Yalnızca desteklenen video dosyaları yüklenebilir.'));
     }

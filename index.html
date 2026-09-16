@@ -190,8 +190,8 @@
         </div>
         <div class="input-group upload-file-group">
           <label for="reel-video">Video dosyası</label>
-          <input id="reel-video" name="video" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" required />
-          <small class="field-hint">MP4, WebM veya MOV · en fazla 100 MB</small>
+          <input id="reel-video" name="video" type="file" accept="video/*" required />
+          <small class="field-hint">Telefonundaki video formatları kabul edilir · en fazla 100 MB</small>
           <video id="reel-preview" class="reel-preview hidden" controls muted playsinline></video>
         </div>
         <button type="button" class="secondary-button upload-quick-fill" id="upload-quick-fill">Otomatik Hazırla</button>

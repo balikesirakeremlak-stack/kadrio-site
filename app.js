@@ -1729,7 +1729,7 @@ document.addEventListener('DOMContentLoaded', () => {
     videoInput?.addEventListener('change', () => {
       const selectedFile = videoInput.files?.[0];
       const selectedExtension = selectedFile?.name.toLowerCase().slice(selectedFile.name.lastIndexOf('.'));
-      const previewExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp'];
+      const previewExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp', '.mkv', '.3g2', '.ts', '.m2ts', '.mts', '.flv', '.asf', '.f4v', '.mxf'];
       if (!selectedFile || (!selectedFile.type.startsWith('video/') && !previewExtensions.includes(selectedExtension))) {
         videoPreview?.classList.add('hidden');
         if (videoPreview) videoPreview.removeAttribute('src');
@@ -1768,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const videoExtension = videoFile.name.toLowerCase().slice(videoFile.name.lastIndexOf('.'));
-      const allowedVideoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp'];
+      const allowedVideoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.m4v', '.mpeg', '.mpg', '.avi', '.wmv', '.3gp', '.mkv', '.3g2', '.ts', '.m2ts', '.mts', '.flv', '.asf', '.f4v', '.mxf'];
       if (!videoFile.type.startsWith('video/') && !allowedVideoExtensions.includes(videoExtension)) {
         alert('Lütfen geçerli bir video dosyası seçin.');
         return;
