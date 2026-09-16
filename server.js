@@ -11,6 +11,7 @@ try {
 }
 const crypto = require('crypto');
 const { promisify } = require('util');
+const { execFile } = require('child_process');
 const LRUCache = require('./lib/cache');
 const { moderateVideo } = require('./lib/geminiModeration');
 const appVersion = require('./package.json').version;
@@ -170,6 +171,28 @@ const videoUpload = multer ? multer({
     callback(null, true);
   }
 }) : { single: () => (req, res, next) => next() };
+
+const execFileAsync = promisify(execFile);
+
+async function normalizeUploadedVideo(file) {
+  if (!file) return file;
+  const outputPath = path.join(uploadDir, `${crypto.randomUUID()}.mp4`);
+  try {
+    await execFileAsync('ffmpeg', [
+      '-y', '-i', file.path,
+      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
+      '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '128k',
+      '-movflags', '+faststart', outputPath
+    ], { timeout: uploadRequestTimeoutMs });
+    await fs.promises.unlink(file.path);
+    return { ...file, path: outputPath, filename: path.basename(outputPath), mimetype: 'video/mp4' };
+  } catch (error) {
+    await fs.promises.unlink(outputPath).catch(() => {});
+    console.warn('Video normalization unavailable; keeping original upload:', error.message);
+    return file;
+  }
+}
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -1179,6 +1202,8 @@ app.post('/api/reel', requireUser, (req, res, next) => videoUpload.single('video
     return res.status(400).json({ error: 'userId and title required' });
   }
   if (Number(userId) !== req.userId) return res.status(403).json({ error: 'user identity mismatch' });
+
+  if (req.file) req.file = await normalizeUploadedVideo(req.file);
 
   const uploadedVideoUrl = req.file ? `/uploads/${req.file.filename}` : videoUrl;
   const reel = {

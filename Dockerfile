@@ -2,6 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
+RUN apk add --no-cache ffmpeg
+
 # Install exactly the locked production dependency tree.
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
