@@ -2600,7 +2600,7 @@ body.feed-mode .reel-card .reel-video::after {
 body.feed-mode .sound-toggle {
   position: absolute;
   right: 16px;
-  top: 78px;
+  top: 92px;
   z-index: 6;
   width: 40px;
   height: 40px;
@@ -2764,7 +2764,7 @@ body.feed-mode .reel-card .comments-list {
   }
 
   body.feed-mode .sound-toggle {
-    top: 62px;
+    top: 86px;
   }
 
   body.feed-mode .reel-card .reel-content {
