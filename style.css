@@ -2921,6 +2921,8 @@ body.feed-mode .reel-card .comments-list {
     width: 100% !important;
     height: 100% !important;
     max-width: 100% !important;
+    background: transparent !important;
+    transform: none !important;
   }
 
   body.feed-mode .top-bar {
@@ -2930,6 +2932,10 @@ body.feed-mode .reel-card .comments-list {
   body.feed-mode .search-form,
   body.feed-mode .feed-status,
   body.feed-mode .install-banner {
+    display: none !important;
+  }
+
+  body.feed-mode .reel-card .reel-video::after {
     display: none !important;
   }
 }
