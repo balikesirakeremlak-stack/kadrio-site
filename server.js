@@ -48,7 +48,22 @@ const corsOrigin = configuredCorsOrigin === 'false'
     ? true
     : process.env.CORS_ORIGIN || (isProduction ? false : true);
 app.set('trust proxy', 1);
-app.use(cors({ origin: corsOrigin }));
+const publicCorsOrigins = new Set([
+  'https://kadrio.co',
+  'https://www.kadrio.co',
+  'https://web-production-8f78b.up.railway.app'
+]);
+const corsOptions = typeof corsOrigin === 'string'
+  ? {
+    origin: (origin, callback) => {
+      if (!origin || publicCorsOrigins.has(origin.toLowerCase()) || origin.toLowerCase() === corsOrigin.toLowerCase()) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS origin not allowed'));
+    }
+  }
+  : { origin: corsOrigin };
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
 function sendError(res, status, code, message) {
