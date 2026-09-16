@@ -2949,4 +2949,9 @@ body.feed-mode .reel-card .comments-list {
   body.feed-mode .reel-card .reel-video::after {
     display: none !important;
   }
+
+  body.feed-mode .sound-toggle {
+    right: 70px !important;
+    z-index: 10 !important;
+  }
 }
