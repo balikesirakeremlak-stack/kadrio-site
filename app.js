@@ -266,7 +266,12 @@ function uploadReelWithProgress(body, onProgress) {
         if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
       });
       request.addEventListener('load', () => {
-        const data = JSON.parse(request.responseText || '{}');
+        let data = {};
+        try {
+          data = JSON.parse(request.responseText || '{}');
+        } catch (error) {
+          data = { error: `Sunucu geçersiz yanıt verdi (${request.status || 'yanıt yok'}).` };
+        }
         if (request.status >= 200 && request.status < 300) resolve(data);
         else {
           const error = new Error(data.error || `API hatası: ${request.status}`);
