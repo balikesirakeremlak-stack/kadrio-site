@@ -494,6 +494,18 @@ async function initDatabase() {
     'CREATE INDEX IF NOT EXISTS idx_reports_status_time ON reports(status, timestamp DESC)'
   ];
   for (const indexSql of indexes) await runDb(indexSql);
+
+  const knownTestReelIds = [1, 2, 4, 12, 13, 14];
+  const testReelRows = await allDb(`SELECT id, videoUrl FROM reels WHERE id IN (${knownTestReelIds.map(() => '?').join(',')})`, knownTestReelIds);
+  for (const table of ['reel_likes', 'reel_comments', 'saved_reels', 'watch_history', 'notifications', 'reports']) {
+    await runDb(`DELETE FROM ${table} WHERE reelId IN (${knownTestReelIds.map(() => '?').join(',')})`, knownTestReelIds);
+  }
+  await runDb(`DELETE FROM reels WHERE id IN (${knownTestReelIds.map(() => '?').join(',')})`, knownTestReelIds);
+  for (const row of testReelRows) {
+    if (row.videoUrl?.startsWith('/uploads/')) {
+      fs.unlink(path.join(uploadDir, path.basename(row.videoUrl)), () => {});
+    }
+  }
 }
 
 initDatabase().catch((error) => console.error('DB init error:', error));
