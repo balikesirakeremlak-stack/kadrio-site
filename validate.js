@@ -119,6 +119,13 @@ test('Database connection works', async () => {
   if (res.body.database !== 'ok') throw new Error('Database not responding');
 });
 
+test('Feed videos are not muted by default', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf8');
+  if (!source.includes('let feedAudioEnabled = true;')) {
+    throw new Error('Feed audio should be enabled by default');
+  }
+});
+
 test('Configuration loaded correctly', async () => {
   const res = await request('GET', '/api/status');
   if (res.status !== 200) throw new Error('Status endpoint failed');

@@ -592,69 +592,6 @@ const affiliateMap = {
   'sample-aff-2': 'https://www.example.com/?ref=sample-aff-2'
 };
 
-const demoFeedReels = [
-  {
-    id: -1,
-    username: 'kadrio',
-    avatar: 'K',
-    title: 'Kadrio ile keşfet',
-    description: 'Creator videolarını keşfet, kendi reelini paylaş.',
-    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    tags: '#kadrio,#keşfet',
-    likeCount: 0,
-    commentCount: 0,
-    shares: 0,
-    views: 0,
-    timestamp: '2026-01-01T00:00:00.000Z',
-    demo: true
-  },
-  {
-    id: -2,
-    username: 'creator_lab',
-    avatar: 'C',
-    title: 'İlk videonu yayınla',
-    description: 'Üret, paylaş ve topluluğa katıl.',
-    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    tags: '#creator,#video',
-    likeCount: 0,
-    commentCount: 0,
-    shares: 0,
-    views: 0,
-    timestamp: '2026-01-01T00:00:00.000Z',
-    demo: true
-  },
-  {
-    id: -3,
-    username: 'kadrio_studio',
-    avatar: 'K',
-    title: 'Creator hikayeleri burada',
-    description: 'Kısa videoları keşfet ve ilham al.',
-    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    tags: '#hikaye,#ilham',
-    likeCount: 0,
-    commentCount: 0,
-    shares: 0,
-    views: 0,
-    timestamp: '2026-01-01T00:00:00.000Z',
-    demo: true
-  },
-  {
-    id: -4,
-    username: 'kesfet',
-    avatar: 'K',
-    title: 'Sıradaki videon burada',
-    description: 'Kadrio akışında yeni üreticileri keşfet.',
-    videoUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-    tags: '#keşfet,#kadrio',
-    likeCount: 0,
-    commentCount: 0,
-    shares: 0,
-    views: 0,
-    timestamp: '2026-01-01T00:00:00.000Z',
-    demo: true
-  }
-];
-
 function xmlEscape(value) {
   return String(value || '').replace(/[<>&'"]/g, (character) => ({
     '<': '&lt;',
@@ -1580,12 +1517,7 @@ app.get('/api/feed', async (req, res) => {
       return res.json({ reels: rows, mode: feedMode });
     }
 
-    const demoRows = demoFeedReels.map((reel) => ({
-      ...reel,
-      comments: reel.commentCount,
-      status: 'published'
-    }));
-    res.json({ reels: demoRows, mode: feedMode });
+    res.json({ reels: [], mode: feedMode });
   } catch (error) {
     res.status(500).json({ error: 'failed to fetch feed' });
   }

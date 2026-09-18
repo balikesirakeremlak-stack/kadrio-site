@@ -20,8 +20,9 @@ let feedItems = [];
 let feedHasMore = true;
 let feedLoading = false;
 let pendingSharedReelId = '';
-let feedAudioEnabled = false;
+let feedAudioEnabled = true;
 const feedPageSize = 20;
+const FALLBACK_VIDEO_URL = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 const FALLBACK_API_BASE = 'https://web-production-8f78b.up.railway.app';
 const API_BASE = (() => {
@@ -116,6 +117,22 @@ function escapeHtml(value) {
     "'": '&#39;',
     '"': '&quot;'
   }[character]));
+}
+
+function getSafeVideoUrl(value) {
+  const source = typeof value === 'string' ? value.trim() : '';
+  if (!source) return FALLBACK_VIDEO_URL;
+  if (source.startsWith('/uploads/')) return source;
+  try {
+    const parsed = new URL(source);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== 'https:' || hostname === 'example.com' || hostname.endsWith('.example.com') || hostname === 'localhost' || hostname === '127.0.0.1') {
+      return FALLBACK_VIDEO_URL;
+    }
+    return source;
+  } catch {
+    return FALLBACK_VIDEO_URL;
+  }
 }
 
 function uiIcon(name) {
@@ -407,7 +424,6 @@ async function renderFeed(nextMode = feedMode, append = false) {
     if (!reels || reels.length === 0) {
       pageBody.innerHTML = `<section class="feed empty-feed">
         <article class="empty-reel-card">
-          <video src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" muted autoplay loop playsinline preload="metadata"></video>
           <div class="empty-reel-shade"></div>
           <div class="empty-reel-copy">
             <span class="preview-label">KADRİO CANLI</span>
@@ -469,7 +485,7 @@ async function renderFeed(nextMode = feedMode, append = false) {
         </div>
         
         <div class="reel-video">
-          <video src="${reel.videoUrl || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'}" ${feedAudioEnabled ? '' : 'muted'} loop playsinline preload="metadata"></video>
+          <video src="${getSafeVideoUrl(reel.videoUrl)}" ${feedAudioEnabled ? '' : 'muted'} loop playsinline preload="metadata"></video>
           <button class="sound-toggle" type="button" aria-label="${feedAudioEnabled ? 'Sesi kapat' : 'Sesi aç'}" aria-pressed="${feedAudioEnabled}"><span class="sound-icon" aria-hidden="true">${feedAudioEnabled ? '◖' : '⌁'}</span></button>
         </div>
         
@@ -563,13 +579,15 @@ async function renderFeed(nextMode = feedMode, append = false) {
         event.stopPropagation();
         const video = button.closest('.reel-video')?.querySelector('video');
         if (!video) return;
-        const muted = !video.muted;
+        const currentlyMuted = video.muted;
+        const muted = currentlyMuted;
+        const shouldMute = !currentlyMuted;
         document.querySelectorAll('.reel-video video').forEach((item) => { item.muted = true; });
-        video.muted = muted;
-        feedAudioEnabled = !muted;
-        video.defaultMuted = muted;
-        video.volume = muted ? 0 : 1;
-        if (!muted) {
+        video.muted = shouldMute;
+        feedAudioEnabled = !shouldMute;
+        video.defaultMuted = shouldMute;
+        video.volume = shouldMute ? 0 : 1;
+        if (!shouldMute) {
           try {
             await video.play();
           } catch (error) {
@@ -583,9 +601,9 @@ async function renderFeed(nextMode = feedMode, append = false) {
             return;
           }
         }
-        button.setAttribute('aria-pressed', String(!muted));
-        button.setAttribute('aria-label', muted ? 'Sesi aç' : 'Sesi kapat');
-        button.querySelector('.sound-icon').textContent = muted ? '⌁' : '◖';
+        button.setAttribute('aria-pressed', String(!shouldMute));
+        button.setAttribute('aria-label', shouldMute ? 'Sesi aç' : 'Sesi kapat');
+        button.querySelector('.sound-icon').textContent = shouldMute ? '⌁' : '◖';
       });
     });
 
@@ -880,7 +898,7 @@ async function renderSearch(query) {
     const data = await fetchJson(`/api/search?q=${encodeURIComponent(query)}`);
     const users = data.users || [];
     const reels = data.reels || [];
-    pageBody.innerHTML = `<section class="form-card search-results"><h2>Arama: ${query}</h2><h3>Creatorlar</h3><div class="search-users">${users.length ? users.map((item) => `<button class="search-user" data-user-id="${item.id}"><span class="avatar">${(item.avatar || item.username).charAt(0).toUpperCase()}</span><strong>@${item.username}</strong></button>`).join('') : '<p class="muted">Creator bulunamadı.</p>'}</div><h3>Reeller</h3><div class="search-reels">${reels.length ? reels.map((item) => `<article class="search-reel"><video src="${item.videoUrl}" controls></video><strong>${item.title}</strong><span class="muted">@${item.username}</span></article>`).join('') : '<p class="muted">Reel bulunamadı.</p>'}</div></section>`;
+    pageBody.innerHTML = `<section class="form-card search-results"><h2>Arama: ${query}</h2><h3>Creatorlar</h3><div class="search-users">${users.length ? users.map((item) => `<button class="search-user" data-user-id="${item.id}"><span class="avatar">${(item.avatar || item.username).charAt(0).toUpperCase()}</span><strong>@${item.username}</strong></button>`).join('') : '<p class="muted">Creator bulunamadı.</p>'}</div><h3>Reeller</h3><div class="search-reels">${reels.length ? reels.map((item) => `<article class="search-reel"><video src="${getSafeVideoUrl(item.videoUrl)}" controls></video><strong>${item.title}</strong><span class="muted">@${item.username}</span></article>`).join('') : '<p class="muted">Reel bulunamadı.</p>'}</div></section>`;
     document.querySelectorAll('.search-user').forEach((button) => button.addEventListener('click', () => renderProfilePage(button.dataset.userId)));
   } catch (error) {
     pageBody.innerHTML = '<section class="form-card"><div class="error">Arama başarısız</div></section>';
@@ -984,7 +1002,7 @@ async function renderCreatorPage() {
     const savedDiv = document.getElementById('saved-reels');
     const savedReels = savedData.reels || [];
     savedDiv.innerHTML = savedReels.length
-      ? savedReels.map((reel) => `<article class="creator-reel-card saved-reel-card"><div class="creator-reel-media"><video src="${escapeHtml(reel.videoUrl)}" controls preload="metadata"></video></div><div class="creator-reel-body"><div class="creator-reel-topline"><h5>${escapeHtml(reel.title)}</h5><span class="creator-status published">Kaydedildi</span></div><div class="creator-reel-meta"><span>@${escapeHtml(reel.username || 'creator')}</span><span>❤️ ${reel.likeCount || reel.likes || 0}</span></div></div></article>`).join('')
+      ? savedReels.map((reel) => `<article class="creator-reel-card saved-reel-card"><div class="creator-reel-media"><video src="${getSafeVideoUrl(reel.videoUrl)}" controls preload="metadata"></video></div><div class="creator-reel-body"><div class="creator-reel-topline"><h5>${escapeHtml(reel.title)}</h5><span class="creator-status published">Kaydedildi</span></div><div class="creator-reel-meta"><span>@${escapeHtml(reel.username || 'creator')}</span><span>❤️ ${reel.likeCount || reel.likes || 0}</span></div></div></article>`).join('')
       : '<p class="saved-empty">Henüz kaydettiğin reel yok.</p>';
     const statusCounts = { published: 0, pending: 0, rejected: 0 };
     if (reels && reels.length) {
@@ -999,7 +1017,7 @@ async function renderCreatorPage() {
         return `
           <article class="creator-reel-card" data-reel-id="${r.id}">
             <div class="creator-reel-media">
-              <video src="${r.videoUrl}" controls></video>
+              <video src="${getSafeVideoUrl(r.videoUrl)}" controls></video>
             </div>
             <div class="creator-reel-body">
               <div class="creator-reel-topline">
@@ -1101,7 +1119,7 @@ async function renderProfilePage(profileUserId) {
           <h3>Reeller</h3>
           <span class="profile-muted">Yayınlanan içerik</span>
         </div>
-        <div class="profile-reels">${reels.length ? reels.map((reel) => `<article class="profile-reel" data-reel-id="${reel.id}"><video src="${reel.videoUrl}" controls></video><strong>${escapeHtml(reel.title)}</strong>${user && String(user.id) === String(creator.id) ? `<button class="profile-delete-reel-btn secondary-button" data-reel-id="${reel.id}" type="button">Sil</button>` : ''}</article>`).join('') : '<p class="muted">Henüz yayınlanmış reel yok.</p>'}</div>
+        <div class="profile-reels">${reels.length ? reels.map((reel) => `<article class="profile-reel" data-reel-id="${reel.id}"><video src="${getSafeVideoUrl(reel.videoUrl)}" controls></video><strong>${escapeHtml(reel.title)}</strong>${user && String(user.id) === String(creator.id) ? `<button class="profile-delete-reel-btn secondary-button" data-reel-id="${reel.id}" type="button">Sil</button>` : ''}</article>`).join('') : '<p class="muted">Henüz yayınlanmış reel yok.</p>'}</div>
         ${user ? '<div id="saved-reels-section" class="saved-reels-section hidden"><h3>Kaydedilenler</h3><div id="saved-reels" class="profile-reels"></div></div>' : ''}
         ${user ? '<div id="history-section" class="saved-reels-section hidden"><h3>İzleme geçmişi</h3><div id="watch-history" class="profile-reels"></div></div>' : ''}
       </section>`;
@@ -1147,7 +1165,7 @@ async function renderProfilePage(profileUserId) {
         try {
           const saved = await fetchJson(`/api/user/${user.id}/saved-reels`);
           list.innerHTML = saved.reels.length
-            ? saved.reels.map((reel) => `<article class="profile-reel"><video src="${escapeHtml(reel.videoUrl)}" controls></video><strong>${escapeHtml(reel.title)}</strong><span class="muted">@${escapeHtml(reel.username)}</span></article>`).join('')
+            ? saved.reels.map((reel) => `<article class="profile-reel"><video src="${getSafeVideoUrl(reel.videoUrl)}" controls></video><strong>${escapeHtml(reel.title)}</strong><span class="muted">@${escapeHtml(reel.username)}</span></article>`).join('')
             : '<p class="muted">Henüz kaydedilmiş reel yok.</p>';
           list.dataset.loaded = 'true';
         } catch (error) {
@@ -1164,7 +1182,7 @@ async function renderProfilePage(profileUserId) {
         try {
           const history = await fetchJson(`/api/user/${user.id}/watch-history`);
           list.innerHTML = history.reels.length
-            ? history.reels.map((reel) => `<article class="profile-reel"><video src="${escapeHtml(reel.videoUrl)}" controls></video><strong>${escapeHtml(reel.title)}</strong><span class="muted">@${escapeHtml(reel.username)}</span></article>`).join('')
+            ? history.reels.map((reel) => `<article class="profile-reel"><video src="${getSafeVideoUrl(reel.videoUrl)}" controls></video><strong>${escapeHtml(reel.title)}</strong><span class="muted">@${escapeHtml(reel.username)}</span></article>`).join('')
             : '<p class="muted">Henüz izleme geçmişi yok.</p>';
           list.dataset.loaded = 'true';
         } catch (error) {
