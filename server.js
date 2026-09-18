@@ -50,6 +50,8 @@ const corsOrigin = configuredCorsOrigin === 'false'
     : process.env.CORS_ORIGIN || (isProduction ? false : true);
 app.set('trust proxy', 1);
 const publicCorsOrigins = new Set([
+  'https://kadrio.com',
+  'https://www.kadrio.com',
   'https://kadrio.co',
   'https://www.kadrio.co',
   'https://web-production-8f78b.up.railway.app'
@@ -93,7 +95,9 @@ app.use((req, res, next) => {
 app.use(express.static(path.join(__dirname), {
   dotfiles: 'allow',
   setHeaders: (res, filePath) => {
-    if (path.basename(filePath) === 'index.html') res.setHeader('Cache-Control', 'no-store');
+    if (['index.html', 'app.js'].includes(path.basename(filePath))) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    }
   }
 }));
 
