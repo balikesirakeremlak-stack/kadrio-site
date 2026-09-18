@@ -247,7 +247,7 @@ async function fetchJson(url, options = {}) {
   throw lastError || new Error('API erişilemedi.');
 }
 
-function uploadReelWithProgress(body, onProgress) {
+function uploadReelWithProgress(body, onProgress, onProcessing) {
   return new Promise((resolve, reject) => {
     let finalError = null;
 
@@ -265,6 +265,7 @@ function uploadReelWithProgress(body, onProgress) {
       request.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
       });
+      request.upload.addEventListener('load', () => onProcessing?.());
       request.addEventListener('load', () => {
         let data = {};
         try {
@@ -1810,6 +1811,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const uploadResult = await uploadReelWithProgress(body, (percent) => {
           if (progressBar) progressBar.style.width = `${percent}%`;
           if (progressLabel) progressLabel.textContent = `${percent}%`;
+        }, () => {
+          if (progressBar) progressBar.style.width = '100%';
+          if (progressLabel) progressLabel.textContent = 'Video işleniyor...';
         });
         const isPending = uploadResult?.moderation === 'pending' || uploadResult?.reel?.status === 'pending';
         const uploadedReelId = uploadResult?.reel?.id;
