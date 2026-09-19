@@ -18,7 +18,7 @@ const appVersion = require('./package.json').version;
 const app = express();
 const port = process.env.PORT || 3000;
 const requestTimeoutMs = Number.parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
-const uploadRequestTimeoutMs = Number.parseInt(process.env.UPLOAD_REQUEST_TIMEOUT_MS || '180000', 10);
+const uploadRequestTimeoutMs = Number.parseInt(process.env.UPLOAD_REQUEST_TIMEOUT_MS || '600000', 10);
 const autoPublishReels = !['false', '0', 'off'].includes(String(process.env.AUTO_PUBLISH_REELS || 'true').trim().toLowerCase());
 const requireAiModeration = !['false', '0', 'off'].includes(String(process.env.REQUIRE_AI_MODERATION || 'false').trim().toLowerCase());
 const isProduction = process.env.NODE_ENV === 'production';

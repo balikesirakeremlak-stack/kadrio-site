@@ -299,7 +299,7 @@ function uploadReelWithProgress(body, onProgress, onProcessing) {
           tryUpload(index + 1);
         }
       });
-      request.timeout = 180000;
+      request.timeout = 600000;
       request.send(body);
     };
 
