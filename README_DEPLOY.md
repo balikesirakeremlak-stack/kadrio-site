@@ -22,7 +22,7 @@ Notlar:
 
 CI/CD (GitHub Actions):
 - Repo'ya `main` branch'e push yapıldığında `.github/workflows/ci-cd.yml` çalışır, Docker image'ı `ghcr.io/${{ github.repository_owner }}/kadrio-site:latest` olarak build edip push eder.
-- Railway ile otomatik deploy için repo secrets içine `RAILWAY_TOKEN` ekleyin; workflow bu secret bulunduğunda `railway up` ile deploy deneyecektir.
+- Railway deploy adımı zorunludur; gerekli secret'lar yoksa workflow açık hata vererek durur. CI'nin yeşil görünmesi deploy'in atlandığı anlamına gelmez.
 
 Railway production kontrol listesi:
 - `NODE_ENV=production`, güçlü bir `ADMIN_TOKEN` ve canlı adresi gösteren `CORS_ORIGIN` tanımlayın.
@@ -32,9 +32,11 @@ GitHub Actions üzerinden otomatik Railway deploy için repository secrets tanı
 - `RAILWAY_TOKEN`
 - `RAILWAY_PROJECT_ID`
 - `RAILWAY_ENVIRONMENT_ID`
+- `RAILWAY_TOKEN`, Railway hesabından oluşturulan Railway CLI erişim token'ıdır; `PROJECT_ID` ve `ENVIRONMENT_ID` Railway proje/ortam kimlikleridir.
 
 Bu secret'lar tanımlandığında `main` branch'e yapılan her push test, Docker build ve Railway deploy aşamalarından geçer.
 - SQLite ve `uploads` klasörü için Railway Volume bağlayın; volume olmadan yeniden deploy sonrası yerel veriler kalıcı değildir.
 - Production ortamında `ADMIN_TOKEN` eksikse sunucu bilerek başlamaz.
+- Railway servisinde ayrıca `NODE_ENV=production`, `ADMIN_TOKEN`, `SESSION_SECRET` (birbirinden farklı güçlü değerler), `CORS_ORIGIN=https://www.kadrio.com` ve Shopier için `PAYMENT_LINK_URL` tanımlayın.
 - İlk deploy sonrası `/api/status` adresinin `200` döndürdüğünü kontrol edin.
 - Video sayısı büyüyecekse yerel volume yerine Cloudinary veya S3 kullanın.

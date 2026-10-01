@@ -60,20 +60,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Check Railway credentials
-        id: railway_credentials
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ secrets.RAILWAY_ENVIRONMENT_ID }}
         run: |
-          if [ -n "$RAILWAY_TOKEN" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
+          missing=""
+          for name in RAILWAY_TOKEN RAILWAY_PROJECT_ID RAILWAY_ENVIRONMENT_ID; do
+            if [ -z "${!name}" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Required GitHub Actions secrets are missing:$missing"
+            echo "Add them in Settings > Secrets and variables > Actions, then rerun this workflow."
+            exit 1
           fi
       - name: Install Railway CLI
-        if: steps.railway_credentials.outputs.available == 'true'
         run: npm install --global @railway/cli
       - name: Deploy to Railway
-        if: steps.railway_credentials.outputs.available == 'true'
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
