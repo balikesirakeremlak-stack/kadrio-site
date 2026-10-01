@@ -33,6 +33,7 @@ GitHub Actions üzerinden otomatik Railway deploy için repository secrets tanı
 - `RAILWAY_PROJECT_ID`
 - `RAILWAY_ENVIRONMENT_ID`
 - `RAILWAY_TOKEN`, Railway hesabından oluşturulan Railway CLI erişim token'ıdır; `PROJECT_ID` ve `ENVIRONMENT_ID` Railway proje/ortam kimlikleridir.
+- Railway production servis adı `web` olmalıdır ve Railway planı aktif olmalıdır; süresi bitmiş trial yeni deploy'ları engeller.
 
 Bu secret'lar tanımlandığında `main` branch'e yapılan her push test, Docker build ve Railway deploy aşamalarından geçer.
 - SQLite ve `uploads` klasörü için Railway Volume bağlayın; volume olmadan yeniden deploy sonrası yerel veriler kalıcı değildir.
